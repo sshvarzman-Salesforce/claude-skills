@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- VERIFIED, DEPLOYED to CommericalDemos + CityBank (2026-07-28).
+     Sequential recurrence = fixed rhythm. Finishing early does NOT start the next window
+     until the previous one closes; finishing late restarts the clock from completion.
+     Metadata enum token is recursChained (NOT "Recurring", NOT "Sequential"). -->
+<MilestoneType xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Gold Banking customer: maintain a 48-hour response rhythm until the case is resolved.</description>
+    <recurrenceType>recursChained</recurrenceType>
+</MilestoneType>

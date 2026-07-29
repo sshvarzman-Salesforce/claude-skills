@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Omni-Channel escalation RoutingFlow — VOICE variant.
+  Hands a live VoiceCall off to a human phone queue and flags the record escalated.
+  Mirrors the working CommericalDemos flow "Escalation_flow_from_BWAM_ASA_to_Queue_voice".
+
+  BEFORE DEPLOYING, swap the org-specific placeholders:
+    __VOICE_QUEUE_ID__     -> the 18-char Group.Id of the target voice queue
+                              (SELECT Id, DeveloperName FROM Group WHERE Type='Queue')
+    __VOICE_QUEUE_LABEL__  -> that queue's human label (e.g. "General Voice")
+  Rename the file to your flow's API name (that name IS the flow's API name), and
+  update <label> / <interviewLabel> to match. Confirm VoiceCall.Escalated_to_Human__c
+  exists + is FLS-editable for the running user first.
+  Leave sfdc_phone / "Phone" alone — those are standard and portable.
+-->
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <name>Route_to_Voice_Queue</name>
+        <label>Route to Voice Queue</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>routeWork</actionName>
+        <actionType>routeWork</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>recordId</name>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>serviceChannelLabel</name>
+            <value>
+                <stringValue>Phone</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>serviceChannelDevName</name>
+            <value>
+                <stringValue>sfdc_phone</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>routingType</name>
+            <value>
+                <stringValue>QueueBased</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>queueLabel</name>
+            <value>
+                <stringValue>__VOICE_QUEUE_LABEL__</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>serviceChannelId</name>
+            <value>
+                <setupReference>sfdc_phone</setupReference>
+                <setupReferenceType>ServiceChannel</setupReferenceType>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>queueId</name>
+            <value>
+                <stringValue>__VOICE_QUEUE_ID__</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>routeWork</nameSegment>
+        <offset>0</offset>
+        <versionString>2.0.0</versionString>
+    </actionCalls>
+    <apiVersion>67.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <environments>Default</environments>
+    <interviewLabel>Escalation flow to Voice Queue {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Escalation flow to Voice Queue</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>RoutingFlow</processType>
+    <recordUpdates>
+        <name>Update_VoiceCall</name>
+        <label>Update VoiceCall</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Route_to_Voice_Queue</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Escalated_to_Human__c</field>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </inputAssignments>
+        <object>VoiceCall</object>
+    </recordUpdates>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Update_VoiceCall</targetReference>
+        </connector>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>recordId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+</Flow>

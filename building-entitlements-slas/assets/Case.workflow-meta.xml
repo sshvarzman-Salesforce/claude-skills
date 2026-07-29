@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- Breach / violation action fired by an EntitlementProcess milestone time-trigger.
+         The EntitlementProcess references this by its <fullName> (API name, no spaces):
+             <actions><name>Set_SLA_Not_Compliant</name><type>FieldUpdate</type></actions>
+         Verified against CommericalDemos + CityBank. The target field
+         SDO_Service_SLA_Compliant__c ships on Case in SDO/Service demo orgs; if your org
+         lacks it, create + FLS a field first and point <field> at it.
+         Deploy this Workflow BEFORE (or in the same package as) the EntitlementProcess. -->
+    <fieldUpdates>
+        <fullName>Set_SLA_Not_Compliant</fullName>
+        <name>Set SLA Not Compliant</name>
+        <field>SDO_Service_SLA_Compliant__c</field>
+        <operation>Literal</operation>
+        <literalValue>false</literalValue>
+        <protected>false</protected>
+        <notifyAssignee>false</notifyAssignee>
+        <reevaluateOnChange>false</reevaluateOnChange>
+    </fieldUpdates>
+</Workflow>

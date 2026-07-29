@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MilestoneType xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>First agent response target. Reusable across entitlement processes. The file name (minus the .milestoneType-meta.xml suffix) IS the milestone label, and the EntitlementProcess must reference it by that exact label.</description>
+    <!-- recurrenceType tokens (metadata + SOQL): none = No Occurrence (once),
+         recursIndependently = Independent (resets each completion),
+         recursChained = Sequential (fixed rhythm). NOT None/Recurring/Independent. -->
+    <recurrenceType>none</recurrenceType>
+</MilestoneType>

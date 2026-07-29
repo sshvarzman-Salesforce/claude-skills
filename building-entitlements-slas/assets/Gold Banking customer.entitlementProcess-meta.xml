@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- VERIFIED, DEPLOYED to CommericalDemos + CityBank (2026-07-28).
+     File name = process name (spaces allowed). Deploy AFTER the MilestoneTypes and the
+     Case field update exist. Each milestone's <milestoneName> MUST exactly match a
+     MilestoneType label; each timeTrigger <actions><name> MUST match a field-update fullName.
+     timeLength=0 Minutes => the action fires AT the milestone target = at breach. -->
+<EntitlementProcess xmlns="http://soap.sforce.com/2006/04/metadata">
+    <SObjectType>Case</SObjectType>
+    <active>true</active>
+    <description>Gold Banking customer SLA process: prioritized first response, recurring updates, and case-closure targets for Gold-tier banking customers. Violations set the case SLA to not compliant.</description>
+    <entryStartDateField>Case.CreatedDate</entryStartDateField>
+    <exitCriteriaFilterItems>
+        <field>Case.IsClosed</field>
+        <operation>equals</operation>
+        <value>true</value>
+    </exitCriteriaFilterItems>
+    <milestones>
+        <milestoneName>First Response Gold</milestoneName>
+        <minutesToComplete>1440</minutesToComplete>
+        <timeTriggers>
+            <actions>
+                <name>Set_SLA_Not_Compliant</name>
+                <type>FieldUpdate</type>
+            </actions>
+            <timeLength>0</timeLength>
+            <workflowTimeTriggerUnit>Minutes</workflowTimeTriggerUnit>
+        </timeTriggers>
+        <useCriteriaStartTime>false</useCriteriaStartTime>
+    </milestones>
+    <milestones>
+        <milestoneName>Reoccurring Response every within 48 hours Gold</milestoneName>
+        <minutesToComplete>2880</minutesToComplete>
+        <timeTriggers>
+            <actions>
+                <name>Set_SLA_Not_Compliant</name>
+                <type>FieldUpdate</type>
+            </actions>
+            <timeLength>0</timeLength>
+            <workflowTimeTriggerUnit>Minutes</workflowTimeTriggerUnit>
+        </timeTriggers>
+        <useCriteriaStartTime>false</useCriteriaStartTime>
+    </milestones>
+    <milestones>
+        <milestoneName>Case Closed Gold</milestoneName>
+        <minutesToComplete>7200</minutesToComplete>
+        <timeTriggers>
+            <actions>
+                <name>Set_SLA_Not_Compliant</name>
+                <type>FieldUpdate</type>
+            </actions>
+            <timeLength>0</timeLength>
+            <workflowTimeTriggerUnit>Minutes</workflowTimeTriggerUnit>
+        </timeTriggers>
+        <useCriteriaStartTime>false</useCriteriaStartTime>
+    </milestones>
+</EntitlementProcess>
