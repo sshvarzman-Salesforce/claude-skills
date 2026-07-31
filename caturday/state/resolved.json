@@ -1,0 +1,7 @@
+{
+  "resolved": [],
+  "config": {
+    "decay_days": 7,
+    "description": "Items older than decay_days are auto-removed from this file on each scan. Thread permalinks are the unique key."
+  }
+}

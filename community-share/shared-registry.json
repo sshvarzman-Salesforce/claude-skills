@@ -1,0 +1,66 @@
+{
+  "team_repo": "git@git.soma.salesforce.com:service-cloud/pm-fy27pdlc-releases.git",
+  "local_clone": "~/pm-fy27pdlc-releases",
+  "prefix": "pm-cg-",
+  "shared": [
+    {
+      "local": "pm-pretotype-shared",
+      "team_name": "pm-cg-pretotype",
+      "description": "PBD → One-Pager → Interactive Pretotype pipeline",
+      "last_synced": "2026-06-26",
+      "version": "2.0"
+    },
+    {
+      "local": "sc-pdlc-audit",
+      "team_name": "pm-cg-pdlc-audit",
+      "description": "Audit skills/PRDs against org PDLC standards",
+      "last_synced": "2026-06-26",
+      "version": "1.0"
+    },
+    {
+      "local": "sf-prd-writer",
+      "team_name": "pm-cg-prd-writer",
+      "description": "Two-mode PRD writer with Slack research and canvas publishing",
+      "last_synced": "2026-06-26",
+      "version": "1.0"
+    },
+    {
+      "local": "pm-cg-pbd-writer",
+      "team_name": "pm-cg-pbd-writer",
+      "description": "Product Business Document generator (Phase 1 artifact)",
+      "last_synced": "2026-06-26",
+      "version": "1.0"
+    },
+    {
+      "local": "sra-expert-shared",
+      "team_name": "pm-cg-sra-expert",
+      "description": "SRA knowledge base for FDEs/SEs/PMs",
+      "last_synced": "2026-06-26",
+      "version": "1.0"
+    }
+  ],
+  "skipped": [
+    "go-to-bed",
+    "good-morning",
+    "caturday",
+    "ai-landing-page",
+    "cvs-sra-tracking"
+  ],
+  "ready_to_share": [
+    {
+      "local": "sra-setup-debug",
+      "team_name": "pm-cg-setup-debug",
+      "description": "Org diagnostic for SRA environments"
+    },
+    {
+      "local": "sf-clt-builder",
+      "team_name": "pm-cg-clt-builder",
+      "description": "Agent Builder CLT configuration"
+    },
+    {
+      "local": "sra-test-case-writer",
+      "team_name": "pm-cg-test-cases",
+      "description": "Generate test scenarios from PRD"
+    }
+  ]
+}

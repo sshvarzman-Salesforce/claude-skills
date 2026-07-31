@@ -1,0 +1,48 @@
+<!--
+  CLT LWC Template — HTML
+
+  Replace:
+    {{cardTitle}}   → e.g., "Customer Profile"
+    {{cardFields}}  → Replace the body with actual field rendering
+
+  Rules:
+    - Use SLDS classes for consistent styling
+    - Always include error state rendering
+    - Always include empty/loading state
+-->
+<template>
+    <template lwc:if={hasError}>
+        <div class="slds-box slds-theme_shade slds-m-around_small">
+            <p class="slds-text-color_error">{errorMessage}</p>
+        </div>
+    </template>
+
+    <template lwc:if={hasData}>
+        <article class="slds-card">
+            <div class="slds-card__header slds-grid">
+                <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                    <div class="slds-media__body">
+                        <h2 class="slds-card__header-title">
+                            <span class="slds-text-heading_small">{{cardTitle}}</span>
+                        </h2>
+                    </div>
+                </header>
+            </div>
+            <div class="slds-card__body slds-card__body_inner">
+                <!-- {{cardFields}} — replace with actual field rendering -->
+                <!-- Example:
+                <dl class="slds-list_horizontal slds-wrap">
+                    <dt class="slds-item_label slds-text-color_weak">Name</dt>
+                    <dd class="slds-item_detail">{customerName}</dd>
+                </dl>
+                -->
+            </div>
+        </article>
+    </template>
+
+    <template lwc:if={showEmpty}>
+        <div class="slds-box slds-theme_shade slds-m-around_small">
+            <p class="slds-text-body_regular">No data available.</p>
+        </div>
+    </template>
+</template>
