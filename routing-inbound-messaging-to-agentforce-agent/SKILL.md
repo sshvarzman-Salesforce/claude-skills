@@ -23,13 +23,15 @@ Customer opens web/in-app chat  (fills pre-chat form: Phone, First, Last)
    → EmbeddedServiceConfig  (the deployment/snippet the site embeds)
 ```
 
-Three deployable artifacts, one Setup step:
+Two artifacts you (Claude) deploy by metadata, plus **one artifact a human must build by hand in the Setup UI** — Claude/the AI cannot create it end to end:
 
-| # | Artifact | Metadata type | Deployable? |
+| # | Artifact | Metadata type | Who builds it |
 |---|---|---|---|
-| 1 | Inbound routing flow | `Flow` (`ProcessType=RoutingFlow`) | ✅ full |
-| 2 | Messaging channel (+ custom pre-chat param) | `MessagingChannel` | ✅ full |
-| 3 | Embedded Service deployment | `EmbeddedServiceConfig` | ⚠️ needs a Setup-provisioned site first (see §4) |
+| 1 | Inbound routing flow | `Flow` (`ProcessType=RoutingFlow`) | ✅ Claude — full metadata deploy |
+| 2 | Messaging channel (+ custom pre-chat param) | `MessagingChannel` | ✅ Claude — full metadata deploy |
+| 3 | Embedded Service deployment | `EmbeddedServiceConfig` | 🧑 **Human, manually in Setup** — the New Deployment wizard is the only way to mint its required site + branding; Claude cannot do this step (see §4) |
+
+> ⚠️ **The Embedded Service deployment (artifact 3) is NOT fully automatable.** No matter how capable the AI assistant is, a human user must open Setup and run the **New Embedded Service Deployment** wizard themselves — the deployment's `ChatterNetworkPicasso` site and branding set can only be provisioned there, never by a metadata/CLI push. Claude's job is to build and deploy artifacts 1 & 2, then hand the user the §4 runbook to finish artifact 3 by hand. Tell the user this up front so they aren't waiting for something the AI can't deliver.
 
 **This is the INBOUND counterpart to `replicating-omnichannel-routing-flows`.** That skill routes a live conversation OUT to a human queue on `@utils.escalate` (routingType=`QueueBased`). This skill routes an inbound chat IN to a bot (routingType=`Copilot`). Same `routeWork` action, different target.
 
@@ -127,7 +129,9 @@ Look the agent up: `sf data query --json -q "SELECT Id, DeveloperName FROM BotDe
 
 ---
 
-## 4. The Embedded Service deployment (`EmbeddedServiceConfig`) — Setup-gated
+## 4. The Embedded Service deployment (`EmbeddedServiceConfig`) — a HUMAN must build this in Setup
+
+> 🧑 **This artifact is a manual, human-only step. Claude/the AI cannot create it.** You (the AI) can *author* the config XML, but you cannot make it exist in the org — the human user must open Setup and run the **New Embedded Service Deployment** wizard themselves. Do not tell the user this is "deployed" or "done" until they confirm they've run that wizard. Your deliverable for this artifact is the runbook below, not a green deploy.
 
 The deployment is what a website embeds. Its XML (`deploymentFeature=EmbeddedMessaging`, `deploymentType=Web`, a pre-chat `embeddedServiceForms`, an `embeddedServiceMessagingChannel` → your channel, a `branding` set, a `site`) is authorable — the asset template has the full shape. **But it will NOT deploy standalone.** A validate-only dry-run fails with:
 
