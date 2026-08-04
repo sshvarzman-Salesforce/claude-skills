@@ -1,6 +1,6 @@
 # Claude Code Skills
 
-A collection of **148 Claude Code skills** for Salesforce development — Agentforce, Service Cloud, OmniStudio, Data Cloud, LWC, metadata, B2B Commerce, and more. Each skill is a self-contained folder with a `SKILL.md` (and optional `references/` and `assets/`) that Claude Code loads on demand.
+A collection of **149 Claude Code skills** for Salesforce development — Agentforce, Service Cloud, OmniStudio, Data Cloud, LWC, metadata, B2B Commerce, and more. Each skill is a self-contained folder with a `SKILL.md` (and optional `references/` and `assets/`) that Claude Code loads on demand.
 
 ## What is a skill?
 
@@ -43,7 +43,7 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 
 ## Skills included
 
-148 skills, listed alphabetically:
+149 skills, listed alphabetically:
 
 - `activating-datacloud`
 - `agentforce-skills-research`
@@ -127,6 +127,7 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `replicating-omnichannel-routing-flows`
 - `retrieving-datacloud`
 - `reviewing-lwc-mobile-offline`
+- `routing-inbound-messaging-to-agentforce-agent`
 - `running-apex-tests`
 - `running-code-analyzer`
 - `sc-pdlc-audit`
@@ -195,6 +196,10 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `validating-slds`
 
 ### Recently added
+
+**Inbound messaging → Agentforce routing** — the INBOUND counterpart to `replicating-omnichannel-routing-flows`: stand up an In-App/Web chat that lands on an ASA agent end to end — the RoutingFlow (resolves Contact from a pre-chat phone, links it to the `MessagingEndUser` parent, `routeWork` routingType=Copilot → BotDefinition), the EmbeddedMessaging `MessagingChannel` with a custom pre-chat phone parameter, and the `EmbeddedServiceConfig` deployment (with the Setup-provisioned ChatterNetworkPicasso site caveat). Ships verified, deployable template XML for all three artifacts.
+
+- `routing-inbound-messaging-to-agentforce-agent`
 
 **Agentforce Service Agent (ASA) build suite** — hard-won patterns from an end-to-end voice ASA build (system-context data flows, agent-user permissions, data-library wiring, locked-object workarounds, and the end-to-end playbook):
 

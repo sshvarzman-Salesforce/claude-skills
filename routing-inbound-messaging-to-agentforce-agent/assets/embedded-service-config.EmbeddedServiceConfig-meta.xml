@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Embedded Service deployment for an EmbeddedMessaging channel.
+  ⚠️ This does NOT deploy standalone. It requires a dedicated ChatterNetworkPicasso
+     site + a branding set that ONLY Setup's "New Deployment" wizard can create.
+     Dry-run without them fails: "This field requires the site type ChatterNetworkPicasso."
+
+  Procedure:
+    1. Setup → Embedded Service → Embedded Service Deployments → New Deployment
+       → Messaging for In-App and Web → pick the EXISTING channel (CHANNEL_API_NAME).
+    2. That mints ESW_<channel>_<ts> (ChatterNetwork) + ESW_<channel>_<ts>1 (ChatterNetworkPicasso)
+       and a branding set (EmbeddedServiceConfig_BrandingSet_<hex>).
+    3. Query: SELECT Name, SiteType FROM Site WHERE Name LIKE 'ESW%'
+    4. Fill BRANDING_SET_NAME + PICASSO_SITE_NAME below, then deploy for version control:
+       sf project deploy start --metadata EmbeddedServiceConfig:<name> --json
+
+  Replace the ALL_CAPS tokens:
+    CONFIG_LABEL        → deployment master label
+    CHANNEL_API_NAME    → the deployed MessagingChannel API name
+    BRANDING_SET_NAME   → the Setup-minted branding set (EmbeddedServiceConfig_BrandingSet_...)
+    PICASSO_SITE_NAME   → the Setup-minted ChatterNetworkPicasso site (ESW_..._<ts>1)
+
+  The Phone pre-chat field (messagingChannelParameterType=Custom) surfaces the channel's
+  custom CustomerPhone parameter in the widget's pre-chat form.
+-->
+<EmbeddedServiceConfig xmlns="http://soap.sforce.com/2006/04/metadata">
+    <areGuestUsersAllowed>false</areGuestUsersAllowed>
+    <branding>BRANDING_SET_NAME</branding>
+    <deploymentFeature>EmbeddedMessaging</deploymentFeature>
+    <deploymentType>Web</deploymentType>
+    <embeddedServiceForms>
+        <displayContext>Conversation</displayContext>
+        <embeddedServiceFormFields>
+            <displayOrder>0</displayOrder>
+            <formField>Phone</formField>
+            <formFieldType>Phone</formFieldType>
+            <isHidden>false</isHidden>
+            <isRequired>true</isRequired>
+            <messagingChannelParameterType>Custom</messagingChannelParameterType>
+        </embeddedServiceFormFields>
+        <embeddedServiceFormFields>
+            <displayOrder>1</displayOrder>
+            <formField>_FirstName</formField>
+            <formFieldType>Text</formFieldType>
+            <isHidden>false</isHidden>
+            <isRequired>false</isRequired>
+            <messagingChannelParameterType>Standard</messagingChannelParameterType>
+        </embeddedServiceFormFields>
+        <embeddedServiceFormFields>
+            <displayOrder>2</displayOrder>
+            <formField>_LastName</formField>
+            <formFieldType>Text</formFieldType>
+            <isHidden>false</isHidden>
+            <isRequired>false</isRequired>
+            <messagingChannelParameterType>Standard</messagingChannelParameterType>
+        </embeddedServiceFormFields>
+        <isActive>true</isActive>
+    </embeddedServiceForms>
+    <embeddedServiceMessagingChannel>
+        <displayNameFormat>{_firstName}{_lastName}{}</displayNameFormat>
+        <isChatInvitationCustomizable>false</isChatInvitationCustomizable>
+        <isEnabled>true</isEnabled>
+        <isInvitationEnabled>false</isInvitationEnabled>
+        <isSendInvtAllowedAfterAccept>false</isSendInvtAllowedAfterAccept>
+        <isSendInvtAllowedAfterReject>false</isSendInvtAllowedAfterReject>
+        <messagingChannel>CHANNEL_API_NAME</messagingChannel>
+        <shouldShowAgentforceTagline>true</shouldShowAgentforceTagline>
+        <shouldShowDeliveryReceipts>false</shouldShowDeliveryReceipts>
+        <shouldShowEmojiSelection>false</shouldShowEmojiSelection>
+        <shouldShowReadReceipts>false</shouldShowReadReceipts>
+        <shouldShowTypingIndicators>false</shouldShowTypingIndicators>
+        <shouldStartNewLineOnEnter>false</shouldStartNewLineOnEnter>
+    </embeddedServiceMessagingChannel>
+    <isEnabled>true</isEnabled>
+    <isTermsAndConditionsEnabled>false</isTermsAndConditionsEnabled>
+    <isTermsAndConditionsRequired>false</isTermsAndConditionsRequired>
+    <masterLabel>CONFIG_LABEL</masterLabel>
+    <shouldHideAuthDialog>false</shouldHideAuthDialog>
+    <site>PICASSO_SITE_NAME</site>
+</EmbeddedServiceConfig>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  EmbeddedMessaging (In-App & Web) MessagingChannel wired to the inbound RoutingFlow.
+  Replace the ALL_CAPS tokens:
+    CHANNEL_LABEL       → display label (e.g. ClaimSecure Messaging (In-App & Web))
+    INBOUND_FLOW_API    → the RoutingFlow API name from inbound-messaging-routingflow
+    FALLBACK_QUEUE_DEV  → messaging queue DeveloperName (e.g. SDO_Service_Messaging)
+  The <customParameters> block maps pre-chat "Phone" → the flow input variable CustomerPhone.
+  Deploy: sf project deploy start --metadata MessagingChannel:<name> --json
+-->
+<MessagingChannel xmlns="http://soap.sforce.com/2006/04/metadata">
+    <automatedResponses>
+        <autoResponseContentType>TextResponse</autoResponseContentType>
+        <language>en_US</language>
+        <response>You&apos;ve opted out of receiving messages from us, so we won&apos;t contact you again.</response>
+        <type>OptOutConfirmation</type>
+    </automatedResponses>
+    <automatedResponses>
+        <autoResponseContentType>TextResponse</autoResponseContentType>
+        <language>en_US</language>
+        <response>Text STOP to opt out of further messages.</response>
+        <type>HelpResponse</type>
+    </automatedResponses>
+    <customParameters>
+        <actionParameterMappings>
+            <actionParameterName>CustomerPhone</actionParameterName>
+        </actionParameterMappings>
+        <externalParameterName>Phone</externalParameterName>
+        <masterLabel>Phone Number</masterLabel>
+        <maxLength>18</maxLength>
+        <name>CustomerPhone</name>
+        <parameterDataType>String</parameterDataType>
+    </customParameters>
+    <embeddedConfig>
+        <allowedFileTypes>bmp,csv,doc,docx,gif,jpg,pdf,png,tiff,txt,xls,xlsx,xml</allowedFileTypes>
+        <anonymousUserJwtExpirationTime>360</anonymousUserJwtExpirationTime>
+        <authMode>UnAuth</authMode>
+        <isAgentAvlCheckEnabled>false</isAgentAvlCheckEnabled>
+        <isAttachmentUploadEnabled>true</isAttachmentUploadEnabled>
+        <isEstimatedWaitTimeEnabled>true</isEstimatedWaitTimeEnabled>
+        <isFallbackMessageEnabled>false</isFallbackMessageEnabled>
+        <isSaveTranscriptEnabled>false</isSaveTranscriptEnabled>
+        <maxFileSize>5</maxFileSize>
+    </embeddedConfig>
+    <isEstimatedWaitTimeEnabled>true</isEstimatedWaitTimeEnabled>
+    <isQueuePositionEnabled>false</isQueuePositionEnabled>
+    <isSynchronousChatEnabled>true</isSynchronousChatEnabled>
+    <isVoiceModeEnabled>false</isVoiceModeEnabled>
+    <masterLabel>CHANNEL_LABEL</masterLabel>
+    <messagingChannelType>EmbeddedMessaging</messagingChannelType>
+    <messagingKeywords>
+        <keyword>cancel</keyword>
+        <keyword>end</keyword>
+        <keyword>quit</keyword>
+        <keyword>stop</keyword>
+        <keyword>stopall</keyword>
+        <keyword>unsubscribe</keyword>
+        <keywordType>OptOut</keywordType>
+        <language>en_US</language>
+    </messagingKeywords>
+    <messagingKeywords>
+        <keyword>help</keyword>
+        <keywordType>Help</keywordType>
+        <language>en_US</language>
+    </messagingKeywords>
+    <sessionHandlerFlow>INBOUND_FLOW_API</sessionHandlerFlow>
+    <sessionHandlerQueue>FALLBACK_QUEUE_DEV</sessionHandlerQueue>
+    <sessionHandlerType>Flow</sessionHandlerType>
+</MessagingChannel>
