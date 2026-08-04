@@ -1,6 +1,6 @@
 # Claude Code Skills
 
-A collection of **82 Claude Code skills** for Salesforce development — Agentforce, OmniStudio, Data Cloud, LWC, metadata, B2B Commerce, and more. Each skill is a self-contained folder with a `SKILL.md` (and optional `references/` and `assets/`) that Claude Code loads on demand.
+A collection of **148 Claude Code skills** for Salesforce development — Agentforce, Service Cloud, OmniStudio, Data Cloud, LWC, metadata, B2B Commerce, and more. Each skill is a self-contained folder with a `SKILL.md` (and optional `references/` and `assets/`) that Claude Code loads on demand.
 
 ## What is a skill?
 
@@ -43,10 +43,17 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 
 ## Skills included
 
+148 skills, listed alphabetically:
+
 - `activating-datacloud`
+- `agentforce-skills-research`
+- `agentforce-testing-center`
+- `agentforce-voice-expert`
+- `ai-landing-page`
 - `analyzing-omnistudio-dependencies`
 - `applying-cms-brand`
 - `applying-slds`
+- `build-agentforce-service-demo`
 - `building-entitlements-slas`
 - `building-mobile-apps`
 - `building-nba-conversation-intelligence`
@@ -56,12 +63,20 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `building-omnistudio-integration-procedure`
 - `building-omnistudio-omniscript`
 - `building-sf-integrations`
+- `building-system-context-agent-data-flows`
 - `building-ui-bundle-app`
 - `building-ui-bundle-frontend`
+- `building-voice-asa-agent`
 - `calling-prompt-templates-in-flows`
+- `case-management-setup`
+- `caturday`
+- `community-share`
 - `configuring-connected-apps`
+- `connecting-agent-data-library`
 - `connecting-datacloud`
 - `creating-b2b-commerce-store`
+- `customer-advocate`
+- `cvs-sra-tracking`
 - `debugging-apex-logs`
 - `deploying-metadata`
 - `deploying-omnistudio-datapacks`
@@ -90,6 +105,9 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `generating-validation-rule`
 - `generating-visual-diagrams`
 - `getting-datacloud-schema`
+- `go-to-bed`
+- `good-morning`
+- `handling-locked-standard-objects`
 - `handling-sf-data`
 - `harmonizing-datacloud`
 - `impeccable`
@@ -102,6 +120,8 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `modeling-omnistudio-epc-catalog`
 - `observing-agentforce`
 - `orchestrating-datacloud`
+- `pm-pretotype`
+- `pm-pretotype-shared`
 - `preparing-datacloud`
 - `querying-soql`
 - `replicating-omnichannel-routing-flows`
@@ -109,8 +129,11 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `reviewing-lwc-mobile-offline`
 - `running-apex-tests`
 - `running-code-analyzer`
+- `sc-pdlc-audit`
+- `scoping-agent-user-permissions`
 - `searching-media`
 - `segmenting-datacloud`
+- `service-helpagent-coordinate`
 - `sf-agent-api-citations`
 - `sf-agent-api-integration-patterns`
 - `sf-agent-api-messaging`
@@ -119,12 +142,91 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `sf-agent-api-setup`
 - `sf-agent-api-troubleshooting`
 - `sf-agent-api-variables`
+- `sf-clt-builder`
+- `sf-hld-reviewer`
+- `sf-instance-lookup`
+- `sf-pbd-writer`
+- `sf-prd-writer`
+- `sf-prototype`
+- `sf-service-ai-intake`
+- `sf-service-case-management`
+- `sf-service-console-productivity`
+- `sf-service-csi`
+- `sf-service-email-to-case`
+- `sf-service-entitlements`
+- `sf-service-field-service-handoff`
+- `sf-service-incident-management`
+- `sf-service-itsm-processes`
+- `sf-service-knowledge`
+- `sf-service-messaging-conversation-toolkit`
+- `sf-service-miaw-client`
+- `sf-service-models-api`
+- `sf-service-omnichannel-routing`
+- `sf-service-review`
+- `sf-service-surveys`
+- `sf-service-tooling-cicd`
+- `sf-service-voice-digital`
+- `sf-service-voice-runtime`
+- `sf-service-voice-toolkit`
+- `sra-action-setup`
+- `sra-agent-debugger`
+- `sra-analytics`
+- `sra-config-analysis`
+- `sra-config-analysis-shared`
+- `sra-customer-interview`
+- `sra-edge-cases`
+- `sra-engineer`
+- `sra-expert-shared`
+- `sra-latency-research`
+- `sra-nga-migration`
+- `sra-pm-triage`
+- `sra-recall`
+- `sra-remember`
+- `sra-review-learnings`
+- `sra-setup-debug`
+- `sra-subagent-generator`
 - `switching-org`
 - `testing-agentforce`
+- `update-my-boss`
 - `uplifting-components-to-slds2`
 - `using-mobile-native-capabilities`
 - `using-ui-bundle-salesforce-data`
+- `ux-research-insights`
 - `validating-slds`
+
+### Recently added
+
+**Agentforce Service Agent (ASA) build suite** — hard-won patterns from an end-to-end voice ASA build (system-context data flows, agent-user permissions, data-library wiring, locked-object workarounds, and the end-to-end playbook):
+
+- `building-system-context-agent-data-flows`
+- `scoping-agent-user-permissions`
+- `connecting-agent-data-library`
+- `handling-locked-standard-objects`
+- `building-voice-asa-agent`
+
+**Service Cloud implementation-pattern suite:**
+
+- `service-helpagent-coordinate`
+- `sf-service-ai-intake`
+- `sf-service-case-management`
+- `sf-service-console-productivity`
+- `sf-service-csi`
+- `sf-service-email-to-case`
+- `sf-service-entitlements`
+- `sf-service-field-service-handoff`
+- `sf-service-incident-management`
+- `sf-service-itsm-processes`
+- `sf-service-knowledge`
+- `sf-service-messaging-conversation-toolkit`
+- `sf-service-miaw-client`
+- `sf-service-models-api`
+- `sf-service-omnichannel-routing`
+- `sf-service-review`
+- `sf-service-surveys`
+- `sf-service-tooling-cicd`
+- `sf-service-voice-digital`
+- `sf-service-voice-runtime`
+- `sf-service-voice-toolkit`
 
 ## Notes
 
