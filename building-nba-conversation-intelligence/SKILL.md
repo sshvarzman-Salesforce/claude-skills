@@ -95,6 +95,13 @@ insert r;
 
 ## 3. Conversation Intelligence Signal Rules
 
+> ⚠️ **THE CHANNEL MUST BE ACTIVE OR THE RULES ARE INVISIBLE IN THE UI.** This applies to **BOTH Voice and Messaging** channels. A CI Signal Rule is bound to a `ConversationChannelId`, and the Conversation Intelligence Signal Rules Setup page filters the rule list **by channel** — it only lists rules whose channel is **active** (`MessagingChannel.IsActive = true`). Rules created (correctly, via REST, returning HTTP 201) against an **inactive** channel are real records in the org but **will not appear in Setup**, so it looks like nothing was created.
+>
+> - **Voice channels** are typically already active (the phone/PSTN channel is live), so voice CI rules show up immediately — this is why voice "just works."
+> - **Messaging channels** (especially a freshly-built In-App & Web `EmbeddedMessaging` channel) are often `IsActive = false` until their **Embedded Service deployment is activated in Setup**. Until then their CI rules are hidden.
+>
+> **Before telling the user the rules are done, verify the target channel is active:** `SELECT Id, DeveloperName, IsActive FROM MessagingChannel WHERE Id = '<channelId>'`. If `IsActive = false`, either (a) activate the channel — for In-App & Web, activate its Embedded Service deployment in Setup (Setup → Embedded Service Deployments → the deployment → Activate; the embedded site is Setup-wizard-provisioned, not metadata-deployable) — or (b) point the rules at an already-active channel. The records don't need rebuilding; activation is purely what makes them **visible and live**.
+
 **Object:** `ConvIntelligenceSignalRule` — queryable but NOT DML-createable via standard Apex.
 
 **Creation method:** REST API via Apex callout:
@@ -306,6 +313,8 @@ To find the right `ConversationChannelId`:
 - The channel Id for "Messaging_for_In_App_Web" in the BMO org is `0MjKj0000008V3QKAU`
 - Voice channels use `VoiceChannel` or the telephony config Id
 
+⚠️ **The channel must be ACTIVE (`MessagingChannel.IsActive = true`) for its CI rules to appear in the Setup UI — true for BOTH voice and messaging channels.** See the warning at the top of §3. An inactive messaging channel (e.g. a not-yet-activated In-App & Web deployment) hides its rules even though the records exist.
+
 ---
 
 ## Verification Checklist
@@ -314,6 +323,7 @@ After building:
 - [ ] All screen flows deployed and Active (`FlowDefinitionView.IsActive = true`)
 - [ ] All Recommendation records created with `IsActionActive = true`
 - [ ] All CI Signal Rules created with `IsActive = true` and correct `ConversationChannelId`
+- [ ] **The target channel is ACTIVE** (`MessagingChannel.IsActive = true`) — required for the rules to show in the CI Setup UI, for BOTH voice and messaging channels. If inactive (common for a new In-App & Web messaging channel), activate its Embedded Service deployment in Setup first.
 - [ ] All sub-rules (keywords) created with correct `ConvIntelligenceSignalRuleId`
 - [ ] Strategy flow deployed, Active, and `processType=RecommendationStrategy`
 - [ ] Strategy flow variables: `ruleDevName` (Input String), `outputRecommendations` (Output SObject Collection Recommendation), `ConversationKey`, `intelligenceSignals`, `matchedKeywords`, `recordId`, `DefaultOutputRecommendations`
