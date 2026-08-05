@@ -53,6 +53,7 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `analyzing-omnistudio-dependencies`
 - `applying-cms-brand`
 - `applying-slds`
+- `authoring-serviceplanner-sra-topics`
 - `build-agentforce-service-demo`
 - `building-entitlements-slas`
 - `building-mobile-apps`
@@ -200,6 +201,10 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 **Inbound messaging → Agentforce routing** — the INBOUND counterpart to `replicating-omnichannel-routing-flows`: stand up an In-App/Web chat that lands on an ASA agent end to end — the RoutingFlow (resolves Contact from a pre-chat phone, links it to the `MessagingEndUser` parent, `routeWork` routingType=Copilot → BotDefinition), the EmbeddedMessaging `MessagingChannel` with a custom pre-chat phone parameter, and the `EmbeddedServiceConfig` deployment (with the Setup-provisioned ChatterNetworkPicasso site caveat). Ships verified, deployable template XML for all three artifacts.
 
 - `routing-inbound-messaging-to-agentforce-agent`
+
+**ServicePlanner (SRA) topics with real actions** — build a classic ServicePlanner Service Rep Assistant into a multi-topic guided-resolution assistant AND attach a real prompt-template/flow action to a topic. The non-obvious lesson: a ServicePlanner `GenAiPlannerBundle` DOES accept custom `generatePromptResponse`/`flow` actions, but only as per-topic `<localActions>` (with a matching per-topic `<localActionLinks>`) — a top-level `<plannerActions>` throws the opaque `ErrorId (-1341094778)`. Covers the decomposed bundle shape, the numbered `Step N:` instruction convention (HTML/bold + per-step customer scripting), per-topic knowledge actions, action-name uniqueness, `localActions/<topic>/<action>/schema.json`, and the deactivate → deploy → reactivate lifecycle.
+
+- `authoring-serviceplanner-sra-topics`
 
 **Agentforce Service Agent (ASA) build suite** — hard-won patterns from an end-to-end voice ASA build (system-context data flows, agent-user permissions, data-library wiring, locked-object workarounds, and the end-to-end playbook):
 
