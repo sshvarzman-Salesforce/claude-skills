@@ -72,6 +72,21 @@ sf agent preview start --json --api-name <Api_Name> --target-org <org>   # verif
 
 **10. Setup handoff (voice binding is Setup-only).** Voice-channel inbound-flow + escalation-flow bindings (`SessionHandlerId`/`FallbackQueueId` on the voice channel) are **NOT API/metadata-settable** — hand the user exact Setup steps: Setup → the Service Cloud Voice channel → set inbound flow → `<Inbound_Omniflow>` and escalation flow → `<Escalation_Voice>`. Messaging escalation, by contrast, binds in the agent metadata (step 9) and takes effect on republish.
 
+## Voice: making the agent SPEAK identifiers correctly (hard-won)
+
+A voice agent reads any numeric string as a **quantity** — certificate number `33556` comes out "thirty-three thousand five hundred fifty-six," never "3-3-5-5-6." Formatting-only instructions ("read digit by digit") are unreliable; the model still quantifies. Two fixes, applied together:
+
+**1. Emit a pre-spaced digit string from the backing flow, and read it verbatim.**
+Have the verify/read flow return an extra **String output** that is the identifier with a space after every digit, built with nested `SUBSTITUTE` inside a `TRIM`:
+```
+TRIM(SUBSTITUTE(SUBSTITUTE( ... SUBSTITUTE(TRIM({!certificateNumber}),
+"0","0 "),"1","1 ") ... "9","9 "))
+```
+(one `SUBSTITUTE` per digit 0–9). Add a corresponding `isOutput=true` String var (e.g. `certificateSpoken`), assign the formula to it in every success branch, and declare it as an action output in the `.agent`. Instruction to the agent: *"Read the `certificateSpoken` string back to the customer exactly as given — do not reformat or interpret it as a number."* The agent voices `"3 3 5 5 6"` as digits. This works for any digit-only identifier (cert #, claim #, member ID).
+
+**2. Verify-then-speak ordering — NEVER recap a captured number before the action runs.**
+The subtler bug: the agent recites the raw transcript number *before* verification, because the pre-verification recap ("Let me confirm — your certificate is 33556, verifying now…") voices the number before the flow's spaced output exists. Fix the verification subagent so that, on capturing DOB + identifier, it **calls the verify action immediately with no recap and no "I'm about to verify you"**, and speaks only *after* the action returns — leading with the success line (e.g. `"I've verified you successfully, {contact name}"`, name from the flow output) and reading the spaced string if it must read the number at all. Same principle for a submit/confirm step: **one** confirmation, then call create immediately — don't gate twice.
+
 ## Verification checklist
 - Perm set assigned to the Einstein Agent User; object Read-only + full FLS; VA/MA=0.
 - All action flows carry `<runInMode>SystemModeWithoutSharing</runInMode>` (the PromptFlow wrapper is the intentional exception).
@@ -88,3 +103,6 @@ sf agent preview start --json --api-name <Api_Name> --target-org <org>   # verif
 - **`FlowDefinitionView` is standard API**, columns `ApiName`/`ProcessType`/`IsActive`. Querying it `--use-tooling-api` throws `INVALID_TYPE`.
 - **Base a new agent version on the ACTIVE version** — retrieve the activated bundle before editing (see memory: always start from the active version).
 - **Editing a Published prompt template's content requires bumping** `versionIdentifier` + `activeVersionIdentifier`, or the change won't take.
+- **Voice agent voices identifiers as quantities** — fix in the flow (spaced-digit string output) + verbatim-readback instruction, not in prompt formatting alone. See the "Voice: making the agent SPEAK identifiers correctly" section.
+- **Agent recites a number before verifying** = the verification subagent has a pre-verification recap. Remove it: capture → call verify immediately → speak only after the action returns.
+- **`duplicate value found: <unknown>` on a Capability PromptFlow deploy** = two channel-resolution record lookups (VoiceCall + MessagingSession) each with `storeOutputAutomatically`, not `queriedFields`/`EndsWith`. Collapse to a single lookup (hardcode the contact, drop channel resolution) and it clears. (memory: `promptflow-queriedfields-duplicate`.)
