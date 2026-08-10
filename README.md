@@ -117,6 +117,7 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `integrating-b2b-commerce-open-code-components`
 - `investigating-agentforce-architecture`
 - `investigating-agentforce-d360`
+- `linking-individuals-by-phone-in-flows`
 - `managing-managed-event-subscription`
 - `modeling-omnistudio-epc-catalog`
 - `observing-agentforce`
@@ -197,6 +198,10 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `validating-slds`
 
 ### Recently added
+
+**Link an individual to a conversation by phone (in a Flow)** — the reusable pattern for resolving *who* a caller/chatter/emailer is and stamping them onto the conversation record. In a Flow, take the phone/ANI off a `VoiceCall` (`FromPhoneNumber`/`ToPhoneNumber` keyed on `CallType`), `MessagingSession`, or `Case`, run the OOB `findMatchingIndividuals` action (`searchTerm`/`searchFields="Phone"`/`searchObject`) against Contact / Person Account / Lead, size the returned `contactIds` collection with the `AssignCount` operator (the metadata enum for the UI's "Equals Count" — `EqualsCount` fails deploy), branch 0 / 1 / >1, and on exactly one match set the host lookup (`Contact__c`) + `RelatedRecordId`. Zero/multiple write an info Long-Text message and latch a filterable Checkbox (formulas can't reference Long Text Area, so the checkbox is flow-set). Ships the verified, deployed `VoiceCall_Match_Caller` flow as a template.
+
+- `linking-individuals-by-phone-in-flows`
 
 **Inbound messaging → Agentforce routing** — the INBOUND counterpart to `replicating-omnichannel-routing-flows`: stand up an In-App/Web chat that lands on an ASA agent end to end — the RoutingFlow (resolves Contact from a pre-chat phone, links it to the `MessagingEndUser` parent, `routeWork` routingType=Copilot → BotDefinition), the EmbeddedMessaging `MessagingChannel` with a custom pre-chat phone parameter, and the `EmbeddedServiceConfig` deployment (with the Setup-provisioned ChatterNetworkPicasso site caveat). Ships verified, deployable template XML for all three artifacts.
 
