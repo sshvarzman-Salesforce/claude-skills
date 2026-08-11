@@ -134,40 +134,146 @@ The `<Agent>.genAiPlannerBundle` XML contains, in order:
 
 ---
 
-## Per-topic action schema.json
+## Per-topic action schema.json — ⚠️ THE #1 THING PEOPLE GET WRONG
 
 Lives at `localActions/<Topic>/<Action>/input/schema.json` and `.../output/schema.json` — **NOT** under top-level `plannerActions/` (that folder is only for the planner-scope knowledge action).
 
-**Input** (prompt-template action; keys are the template's input variable names; `required` lists mandatory ones; the value the member supplies gets `copilotAction:isUserInput: true`):
-```json
-{
-  "required" : [ "ClaimNumber" ],
-  "unevaluatedProperties" : false,
-  "properties" : {
-    "VoiceCallId" : { "title":"VoiceCallId", "description":"The Id of the VoiceCall for the current conversation, if voice.", "lightning:type":"lightning__textType", "lightning:isPII":false, "copilotAction:isUserInput":false },
-    "MessagingSessionId" : { "title":"MessagingSessionId", "description":"The Id of the Messaging Session, if messaging.", "lightning:type":"lightning__textType", "lightning:isPII":false, "copilotAction:isUserInput":false },
-    "ClaimNumber" : { "title":"ClaimNumber", "description":"The claim number the member wants to check, e.g. CLM-DENTAL-2001.", "lightning:type":"lightning__textType", "lightning:isPII":false, "copilotAction:isUserInput":true }
-  },
-  "lightning:type" : "lightning__objectType",
-  "lightning:textIndexed" : true
-}
-```
-> For a **flow** action, input keys are `Input:<flowVarName>` instead of plain names.
+**DO NOT hand-author these schemas from a guess of the field names.** A `generatePromptResponse` action's schema is NOT "one property per prompt-template input var." It has a **fixed, platform-generated shape** that you must reproduce exactly, or the action silently fails to bind — the planner shows the action but it never returns data, and there is NO deploy error to tell you why. **The single most common failure is using the bare input-var name as the property key instead of the `Input:`-prefixed key, and omitting the platform's standard companion properties.** (Verified by diffing a broken hand-authored action against a working one the platform generated — the ONLY differences were these schema keys.)
 
-**Output** (generatePromptResponse = a single `promptResponse`, the text the planner surfaces to the rep):
+### The authoritative way to get a correct schema: let the platform generate it
+
+The reliable path is to **add the action in the Agent Builder UI once, then retrieve the bundle** (`sf project retrieve start -m GenAiPlannerBundle:<Agent>`) and copy the platform-written `input/output/schema.json` into your project. Hand-author only if you match the shapes below verbatim.
+
+### Correct **input** schema for a `generatePromptResponse` (prompt-template) action
+
+The user-supplied prompt-template input becomes a property keyed **`Input:<VarName>`** (the `Input:` prefix is REQUIRED and must match the template's `<referenceName>Input:<VarName></referenceName>`), and the platform always adds two standard companion properties: `outputLanguage` and `isPreviewOnly`. Do NOT add `lightning:textIndexed` at the object level (the platform omits it for these actions).
+
+```json
+{
+  "required" : [ "Input:DisputeLast4" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "Input:DisputeLast4" : {
+      "title" : "DisputeLast4",
+      "description" : "The Last 4 digits of the Dispute number",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "outputLanguage" : {
+      "title" : "Output language",
+      "description" : "Optional. Specify the response language using the appropriate two-character language code or five-character locale code (for example, en_US, en_GB, es, es_MX).",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "isPreviewOnly" : {
+      "title" : "Preview Only",
+      "description" : "Resolves the prompt template without generating an LLM response.",
+      "lightning:type" : "lightning__booleanType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}
+```
+- `required` lists the `Input:`-prefixed key(s) the member must supply.
+- The value the customer/rep supplies (the last-4, the claim number) is the `Input:<VarName>` property with `copilotAction:isUserInput: true`.
+- If the prompt template also takes conversation context (VoiceCallId / MessagingSessionId) as **prompt inputs**, they too are `Input:VoiceCallId` / `Input:MessagingSessionId` with `copilotAction:isUserInput: false`. (Better: resolve those inside the backing flow from the conversation record, so the action needs only the one user-supplied input.)
+
+### Correct **output** schema for a `generatePromptResponse` action
+
+Two fixed properties — `promptResponse` and `generationId` — both with `isDisplayable: false` and `isUsedByPlanner: true`. Do NOT set `isDisplayable: true` (the platform uses `false`; the planner reads the response, it isn't rendered raw), and do NOT add `lightning:textIndexed`.
+
 ```json
 {
   "unevaluatedProperties" : false,
   "properties" : {
-    "promptResponse" : { "title":"promptResponse", "description":"The rep-facing briefing generated from the matched claim.", "lightning:type":"lightning__textType", "lightning:isPII":false, "copilotAction:isDisplayable":true, "copilotAction:isUsedByPlanner":true, "copilotAction:useHydratedPrompt":false }
+    "promptResponse" : {
+      "title" : "Prompt Response",
+      "description" : "The prompt response generated by the action based on the specified prompt and input.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true,
+      "copilotAction:useHydratedPrompt" : false
+    },
+    "generationId" : {
+      "title" : "Prompt Generation ID",
+      "description" : "The unique identifier for the prompt generation associated with this action invocation.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true,
+      "copilotAction:useHydratedPrompt" : false
+    }
   },
-  "lightning:type" : "lightning__objectType",
-  "lightning:textIndexed" : true
+  "lightning:type" : "lightning__objectType"
 }
 ```
+
+### The `<localActions>` block for a working prompt-template action
+
+A `generatePromptResponse` action carries **NO `<source>` element** (that's only on the knowledge action). `invocationTarget` and `localDeveloperName` are the **bare** prompt-template dev name; the `developerName`/`fullName` are suffixed-unique. It MUST be linked from the topic via a matching `<localActionLinks><functionName>`:
+
+```xml
+<localActionLinks>
+    <functionName>Complaints_SRA_Dispute_Lookup_179gL000002aY3d</functionName>
+</localActionLinks>
+...
+<localActions>
+    <fullName>Complaints_SRA_Dispute_Lookup_179gL000002aY3d</fullName>
+    <description>This is the action which gives back the Dispute Details after providing the last 4 digits of the dispute's number</description>
+    <developerName>Complaints_SRA_Dispute_Lookup_179gL000002aY3d</developerName>
+    <invocationTarget>Complaints_SRA_Dispute_Lookup</invocationTarget>   <!-- BARE prompt-template dev name -->
+    <invocationTargetType>generatePromptResponse</invocationTargetType>
+    <isConfirmationRequired>false</isConfirmationRequired>
+    <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+    <localDeveloperName>Complaints_SRA_Dispute_Lookup</localDeveloperName>   <!-- BARE -->
+    <masterLabel>Complaints SRA Dispute Lookup</masterLabel>
+    <progressIndicatorMessage>Getting Dispute Details</progressIndicatorMessage>
+    <!-- NO <source> for generatePromptResponse -->
+</localActions>
+```
+
+> **If you author the action but forget the matching `<localActionLinks><functionName>`, the action is an inert orphan** — it deploys, the agent activates, and the action is simply never available to the topic. This is a silent failure with no error. Always pair every `<localActions>` with a `<localActionLinks>`.
+
 Types available: `lightning__textType`, `lightning__numberType`, `lightning__booleanType`, `lightning__richTextType`, `lightning__objectType`. Always `"unevaluatedProperties": false`.
 
 The knowledge action's own `input/output/schema.json` under both `plannerActions/<Knowledge>/` and each `localActions/<Topic>/<Knowledge>/` are the stock EmployeeCopilot schemas — copy them verbatim from an existing OOB SRA bundle (`Agentforce_Service_Assistant`, `SDO_Service_Agentforce_Service_Assistant`); do not hand-author them.
+
+## The backing prompt template + flow (the working contract)
+
+The `generatePromptResponse` action points at a **flex GenAiPromptTemplate** (`type=einstein_gpt__flex`) whose single user input is declared as:
+```xml
+<inputs>
+    <apiName>DisputeLast4</apiName>
+    <definition>primitive://String</definition>
+    <masterLabel>DisputeLast4</masterLabel>
+    <referenceName>Input:DisputeLast4</referenceName>   <!-- this is why the schema key is Input:DisputeLast4 -->
+    <required>true</required>
+</inputs>
+```
+The template pulls the record data from a **Capability PromptFlow data provider** — a flat flow (NO subflow, NO loop) that does one Get Records and appends the result to `$Output.Prompt`:
+```xml
+<templateDataProviders>
+    <definition>flow://Complaints_SRA_Get_Dispute</definition>
+    <label>Complaints SRA Get Dispute</label>
+    <parameters>
+        <definition>primitive://String</definition>
+        <isRequired>true</isRequired>
+        <parameterName>DisputeLast4</parameterName>
+        <valueExpression>{!$Input:DisputeLast4}</valueExpression>   <!-- template input → flow input -->
+    </parameters>
+    <referenceName>Flow:Complaints_SRA_Get_Dispute</referenceName>
+</templateDataProviders>
+```
+and the template body references the flow output with `{!$Flow:Complaints_SRA_Get_Dispute.Prompt}`.
+
+**Keep the data-provider flow FLAT.** The working flow is: `Start (triggerType=Capability)` → `Get Records` (filter `Contact__c EqualTo <hardcoded demo contact Id>` AND `Name EndsWith <last4>`, `getFirstRecordOnly=true`) → `Decision` on `Id IsNull` → two `Assignment`s (`elementSubtype=AddPromptInstructions`, operator `Add` to `$Output.Prompt`): a full-detail block on the found branch, a "NO MATCHING DISPUTE FOUND" line on the default branch. No subflow, no loop, no collection iteration. Flow Get Records has **no LIKE operator** — the "ends with last 4" match uses the `EndsWith` filter operator directly in the query (`Like`/`LikeString` are invalid `FlowRecordFilterOperator` values).
+
+**Isolation-test trick (how to prove the action wiring works independent of the flow):** temporarily publish a template version whose body hardcodes a literal dispute block (and drop the `templateDataProviders`). If the agent then surfaces that literal via the action, the action ↔ template binding is correct and any remaining problem is in the flow; restore the `{!$Flow:...}` reference + data provider afterward.
 
 ---
 
@@ -187,7 +293,11 @@ Convention per topic:
 
 ## Backing an action (the claim-lookup example)
 
-The custom action's `source`/`invocationTarget` points at a real artifact. For the verified example it's a **flex GenAiPromptTemplate** `ClaimSecure_SRA_Claim_Status` that wraps a **PromptFlow** (`ClaimSecure_SRA_Get_Claim_Status`, `triggerType=Capability`) which calls an **AutoLaunchedFlow subflow** (`ClaimSecure_SRA_Read_Claim`, **SystemModeWithoutSharing**). The subflow resolves the member's Contact from the conversation — **VoiceCall.Contact__c** (custom lookup) for voice, **MessagingSession.EndUserContactId** for messaging — finds the claim by number (and confirms last-4), and returns the briefing text. Standing pattern: **data-provider reads run SystemModeWithoutSharing in the autolaunched subflow; the Capability PromptFlow stays thin.** A `flow`-type action can be attached the same way — just set `invocationTargetType=flow` and use `Input:<var>` schema keys.
+The custom action's `invocationTarget` (and `localDeveloperName`) point at a real artifact — for a `generatePromptResponse` action that's a prompt template; there is **no `<source>`** element. For the verified example it's a **flex GenAiPromptTemplate** `ClaimSecure_SRA_Claim_Status` that wraps a **PromptFlow** (`ClaimSecure_SRA_Get_Claim_Status`, `triggerType=Capability`) which calls an **AutoLaunchedFlow subflow** (`ClaimSecure_SRA_Read_Claim`, **SystemModeWithoutSharing**). The subflow resolves the member's Contact from the conversation — **VoiceCall.Contact__c** (custom lookup) for voice, **MessagingSession.EndUserContactId** for messaging — finds the claim by number (and confirms last-4), and returns the briefing text. Standing pattern: **data-provider reads run SystemModeWithoutSharing in the autolaunched subflow; the Capability PromptFlow stays thin.**
+
+> For a simpler demo (like the Complaints dispute lookup) the data provider can be a single FLAT Capability PromptFlow with no subflow — see [The backing prompt template + flow](#the-backing-prompt-template--flow-the-working-contract) above.
+
+A `flow`-type action (`invocationTargetType=flow`) is attached the same way and also uses `Input:<var>` schema keys. **Both** action types key their input schema `Input:<VarName>` — this is not flow-specific.
 
 ---
 
@@ -217,8 +327,8 @@ The custom action's `source`/`invocationTarget` points at a real artifact. For t
 - [ ] Bundle has one `<localTopicLinks>` + one `<localTopics>` per topic; one top-level `<plannerActions>` = the knowledge action only.
 - [ ] Every topic carries the per-topic knowledge action (`localActions` + `localActionLinks`).
 - [ ] Any custom action is a **per-topic `<localActions>`** with a matching `<localActionLinks><functionName>` — NEVER a top-level `<plannerActions>`.
-- [ ] Custom action `developerName` is suffixed/unique; `invocationTarget`/`source`/`localDeveloperName` are the bare backing artifact dev name.
-- [ ] `localActions/<Topic>/<Action>/input+output/schema.json` exist; input keys match the template vars (`Input:<var>` for flows); output is single `promptResponse` for generatePromptResponse.
+- [ ] Custom action `developerName` is suffixed/unique; `invocationTarget`/`localDeveloperName` are the bare backing artifact dev name. A `generatePromptResponse` action has **NO `<source>`** (only the knowledge action does).
+- [ ] `localActions/<Topic>/<Action>/input+output/schema.json` exist and match the platform shape: input property key is **`Input:<VarName>`** (NOT the bare var name) + the `outputLanguage` and `isPreviewOnly` companions, no object-level `lightning:textIndexed`; output has **both** `promptResponse` AND `generationId`, each with `copilotAction:isDisplayable:false`. When unsure, add the action in the UI once and retrieve the generated schema.
 - [ ] Each topic: formatting note + `Step N:` numbered instructions + per-step `Say to the customer: "…"` + a negative-boundary `<scope>`.
 - [ ] Steps that have a backing action instruct the planner to USE it (not just point at console tools).
 - [ ] Dry-run clean (no `-1341094778`, no `duplicate value found`) → deploy → activate → `BotVersion` Active.
@@ -231,6 +341,11 @@ The custom action's `source`/`invocationTarget` points at a real artifact. For t
 | Concluding "ServicePlanner is knowledge-only" after `-1341094778` | Wrong root cause — it's placement; per-topic custom actions work |
 | Action dev name equals a standalone `GenAiFunction` | Suffix-rename (`_179g…`) and/or delete the standalone; keep `invocationTarget` bare |
 | Schema under `plannerActions/` for a per-topic action | Put it under `localActions/<Topic>/<Action>/` |
-| Flow action using plain input keys | Flow input keys must be `Input:<flowVarName>` |
+| **Input schema keyed by the bare var name** (`DisputeLast4`) | Must be **`Input:DisputeLast4`** — the `Input:` prefix is required and must match the template's `<referenceName>`; applies to prompt-template AND flow actions |
+| Input schema missing `outputLanguage` / `isPreviewOnly`, or has object-level `lightning:textIndexed` | Add both companion properties (`isUserInput:false`); remove `lightning:textIndexed` — the platform doesn't emit it for these actions |
+| Output schema with `isDisplayable:true`, or missing `generationId` | Use `isDisplayable:false` on `promptResponse`; add the second `generationId` property (both `isUsedByPlanner:true`, `useHydratedPrompt:false`) |
+| Action authored but **no matching `<localActionLinks><functionName>`** | The action is an inert orphan — deploys and activates but is never invoked, with no error. Add the link. |
+| Hand-authoring the action schema from memory | Add the action in Agent Builder once, retrieve the bundle, copy the platform-generated `input/output/schema.json` verbatim |
+| `<source>` element on a `generatePromptResponse`/`flow` action | Remove it — `<source>` is only for the OOB knowledge action; custom actions use `invocationTarget` + `localDeveloperName` only |
 | Step attached to an action but text still says "use console tools" | Rewrite the step to instruct the planner to call the action |
 | `Bot.DeveloperName` in BotVersion SOQL | Use `BotDefinition.DeveloperName`; don't add `--use-tooling-api` (BotVersion is a regular object) |
