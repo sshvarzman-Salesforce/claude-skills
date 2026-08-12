@@ -287,7 +287,12 @@ Convention per topic:
 3. **Every step ends with a customer script**: `Say to the customer: "…"` — the exact words the rep speaks/types, voice + messaging.
 4. Where policy/process detail is needed, tell the rep to **surface the relevant knowledge article** (the per-topic knowledge action supplies it) — never write "search the knowledge base" as a manual step.
 5. Where a real action exists (e.g. Claim Status), the step should tell the planner to **use the action to retrieve real data** and forbid inventing values — e.g. *"Use the claim-status action to look up the claim by claim number; do not guess or invent claim data."* (If you attach an action but leave the step pointing only at "console tools," the planner has no instruction to call it — keep the two in sync.)
-6. The topic `<scope>` states the topic's job and an explicit **negative boundary** ("You must not … — hand those to the matching topic.") so topics don't bleed into each other.
+6. **To surface a STANDARD console quick action (e.g. the `Email` / `Case.SendEmail` action) in the plan, you do it with INSTRUCTION TEXT ONLY — there is NO metadata action attachment for it.** A standard quick action already lives on the record page; the SRA only decides whether to *mention* it in the generated plan. This is fundamentally different from a custom `generatePromptResponse`/`flow` action (§ Backing an action) — do **not** add a `<localActions>` entry or a schema for a quick action, and don't look for one. How you phrase the instruction is what makes the action actually appear as a step:
+   - **Make the action its own explicit directive, not a mid-sentence aside.** *"Surface the **Email** quick action as part of the plan"* buried inside a longer sentence tends to get dropped/paraphrased away. Lead the step with it: *"ALWAYS surface the **`Email`** quick action as an explicit step: **Open the Email quick action on this case** and send the customer a written confirmation."*
+   - **Name the action by its exact console label** (the label the rep sees — e.g. `Email`, not `SendEmail`), bolded, and **name it again at the end of the step** so the model can't lose it.
+   - Then say what the action's content should contain (the recap fields) and close with the `Say to the customer: "…"` script as usual.
+   - Verified live: adding these leading, explicitly-named Email steps to the Complaints SRA dispute topics is what made the **Email** quick action reliably show in the generated service plan; the earlier "to do this, tell the rep to open the Email quick action…" mid-sentence phrasing did not surface it consistently.
+7. The topic `<scope>` states the topic's job and an explicit **negative boundary** ("You must not … — hand those to the matching topic.") so topics don't bleed into each other.
 
 ---
 
@@ -331,6 +336,7 @@ A `flow`-type action (`invocationTargetType=flow`) is attached the same way and 
 - [ ] `localActions/<Topic>/<Action>/input+output/schema.json` exist and match the platform shape: input property key is **`Input:<VarName>`** (NOT the bare var name) + the `outputLanguage` and `isPreviewOnly` companions, no object-level `lightning:textIndexed`; output has **both** `promptResponse` AND `generationId`, each with `copilotAction:isDisplayable:false`. When unsure, add the action in the UI once and retrieve the generated schema.
 - [ ] Each topic: formatting note + `Step N:` numbered instructions + per-step `Say to the customer: "…"` + a negative-boundary `<scope>`.
 - [ ] Steps that have a backing action instruct the planner to USE it (not just point at console tools).
+- [ ] To surface a STANDARD quick action (e.g. `Email`): instruction text only — NO `<localActions>`/schema; the step LEADS with the action, names it by its exact console label (bolded) at least twice, then states the recap content.
 - [ ] Dry-run clean (no `-1341094778`, no `duplicate value found`) → deploy → activate → `BotVersion` Active.
 
 ## Common mistakes → fixes
@@ -348,4 +354,6 @@ A `flow`-type action (`invocationTargetType=flow`) is attached the same way and 
 | Hand-authoring the action schema from memory | Add the action in Agent Builder once, retrieve the bundle, copy the platform-generated `input/output/schema.json` verbatim |
 | `<source>` element on a `generatePromptResponse`/`flow` action | Remove it — `<source>` is only for the OOB knowledge action; custom actions use `invocationTarget` + `localDeveloperName` only |
 | Step attached to an action but text still says "use console tools" | Rewrite the step to instruct the planner to call the action |
+| Adding a `<localActions>` entry / schema for a standard quick action (e.g. `Email`) | Don't — a standard quick action is surfaced by INSTRUCTION TEXT only; there is no metadata attachment for it |
+| Quick action doesn't appear in the plan because it's mentioned mid-sentence | Make it a leading, explicit directive and name the action by its exact console label (bolded) at least twice in the step |
 | `Bot.DeveloperName` in BotVersion SOQL | Use `BotDefinition.DeveloperName`; don't add `--use-tooling-api` (BotVersion is a regular object) |
