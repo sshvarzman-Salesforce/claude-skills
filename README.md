@@ -81,6 +81,7 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `debugging-apex-logs`
 - `deploying-metadata`
 - `deploying-omnistudio-datapacks`
+- `deploying-person-account-fields-via-contact`
 - `deploying-ui-bundle`
 - `developing-agentforce`
 - `developing-datacloud-code-extension`
@@ -198,6 +199,10 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `validating-slds`
 
 ### Recently added
+
+**Person Account custom fields — create on Contact, read the `__pc` mirror** — the reusable mechanics for adding a custom field to a Person Account without the classic split-field mistake. Author the person attribute on **Contact**; Salesforce auto-materializes it on **Account** as a `__pc`-suffixed field (e.g. `Member_Status__c` → `Account.Member_Status__pc`), immediately queryable via SOQL and REST/Bulk API and referenceable in Flow — you never author the Account-side field. Covers why creating it on Account directly is wrong, the one exception (roll-up summaries must live on the master Account), FLS on the Contact source field, placing it on BOTH Contact and Account page layouts, and — from a Person Account's Contact record in a Flow — traversing `Contact.AccountId → Account` (the person self-lookup) to read `__pc`/roll-up/Account-only fields in system mode. Includes the deploy/verify recipe and a worked OMERS-pension example.
+
+- `deploying-person-account-fields-via-contact`
 
 **Link an individual to a conversation by phone (in a Flow)** — the reusable pattern for resolving *who* a caller/chatter/emailer is and stamping them onto the conversation record. In a Flow, take the phone/ANI off a `VoiceCall` (`FromPhoneNumber`/`ToPhoneNumber` keyed on `CallType`), `MessagingSession`, or `Case`, run the OOB `findMatchingIndividuals` action (`searchTerm`/`searchFields="Phone"`/`searchObject`) against Contact / Person Account / Lead, size the returned `contactIds` collection with the `AssignCount` operator (the metadata enum for the UI's "Equals Count" — `EqualsCount` fails deploy), branch 0 / 1 / >1, and on exactly one match set the host lookup (`Contact__c`) + `RelatedRecordId`. Zero/multiple write an info Long-Text message and latch a filterable Checkbox (formulas can't reference Long Text Area, so the checkbox is flow-set). Ships the verified, deployed `VoiceCall_Match_Caller` flow as a template.
 
