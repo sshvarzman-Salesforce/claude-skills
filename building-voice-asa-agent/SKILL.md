@@ -16,7 +16,9 @@ Proven pattern (BWAM_ASA_Sean → ClaimSecure_ASA): **hub-and-spoke router, hard
 - **`building-system-context-agent-data-flows`** — the read/write/verify flows (all `SystemModeWithoutSharing`), and the PromptFlow empty-results bug + fix.
 - **`scoping-agent-user-permissions`** — the agent-user perm set (object Read-only, VA/MA=0, full FLS).
 - **`connecting-agent-data-library`** — the GeneralFAQ subagent + shared flex template for knowledge/citations.
+- **`connecting-channels-to-asa`** — the full voice + messaging story: inbound omni-flow → ASA and escalation ASA → queue/skill/direct-to-rep, and exactly what binds in metadata vs. Setup.
 - **`replicating-omnichannel-routing-flows`** — the escalation RoutingFlows (voice + messaging) and channel binding.
+- **`building-contact-center-kpis-agentwork`** — AgentWork-driven KPIs (Accepted-by-Human with genuine-human gating, Abandoned, Speed-to-Answer) + the VoiceCall/MessagingSession custom fields.
 - **`calling-prompt-templates-in-flows`** — template↔flow wiring.
 - **`handling-locked-standard-objects`** — if the demo object is a locked industry object (e.g. Claim).
 
@@ -27,6 +29,25 @@ Proven pattern (BWAM_ASA_Sean → ClaimSecure_ASA): **hub-and-spoke router, hard
 - **Every new field on all page layouts with FLS read+write for all profiles.**
 - **Related-record access via the junction first** (e.g. Contact→Claim always through `ClaimParticipant`).
 - Always `--json`; always `--target-org <the demo org>` (the global default is usually a different org).
+
+## Two hard rules for actions (learned the hard way — do NOT violate)
+
+**RULE 1 — Prompt templates are for READING data ONLY. Never for writes.**
+A `generatePromptResponse://` action (prompt template + PromptFlow) may **only read/summarize** data. It must **never** create, update, or delete a record. The template runs in a generative/data-provider context, not a transactional one — a "write" expressed through a template either silently does nothing or behaves nondeterministically.
+- **Reads** (pension summary, claim status, "what are my AVCs") → prompt template over a system-context PromptFlow. ✅
+- **Writes** (update AVC amount, purchase a buyback, verify a member, create a case) → a real **autolaunched Flow** (`flow://…`, `SystemModeWithoutSharing`, Active) that returns the result var. ✅
+- If you find yourself wanting a prompt template to "confirm and save" — stop. That's a Flow. (Real OMERS bug: the member-verify step was a prompt template; it had to be rebuilt as an autolaunched Flow returning `VERIFIED`, with the agent setting `isVerified` on the flow's output.)
+
+**RULE 2 — Every agent action needs at least ONE input parameter. Zero-input actions are invalid.**
+An ASA action that declares **no** inputs is rejected by the platform — the Reset/Simulator reports *"The action `<Name>` is missing the input parameters…"* even though nothing is technically "missing." The fix is to give every action ≥1 declared, genuinely-passed input.
+- For a data action that conceptually needs no runtime input (it hardcodes the demo persona), add a required **`Input:ContactID`** wired end-to-end and bound to a hardcoded ASA variable:
+  - `.agent` variables block: `DemoContactId: mutable string = "<hardcoded Contact Id>"` (visibility `Internal`).
+  - `.agent` action `inputs:` — `"Input:ContactID": string` (`is_required: True`, `complex_data_type_name: "lightning__textType"`).
+  - `.agent` reasoning binding — `with "Input:ContactID" = @variables.DemoContactId`.
+  - Flex template `<inputs>` — `apiName=ContactID`, `referenceName=Input:ContactID`, `definition=primitive://String`, `required=true`; plus a `<templateDataProviders><parameters>` map `contactId` = `{!$Input:ContactID}`.
+  - Backing PromptFlow — an `isInput` String var `contactId`. (The subflow can still hardcode the persona; the input exists to satisfy the ≥1-input contract and is really declared/passed, so demo behavior is unchanged.)
+  - **Adding an input to a Published flex template must be `required=false` on the template parameter side + bump `versionIdentifier`/`activeVersionIdentifier`** — see the `flex-template-input-add-required-false` memory.
+- **Flow actions** use **bare** input names (no `Input:` prefix) matching the flow's `isInput` var names, and output the flow's output var (not `promptResponse`).
 
 ## Build sequence
 
@@ -97,6 +118,8 @@ The subtler bug: the agent recites the raw transcript number *before* verificati
 - Per-channel escalation confirmed: telephony→voice flow, messaging→messaging flow.
 
 ## Gotchas (the ones that actually cost time)
+- **Prompt template used for a write** = silent no-op / nondeterministic. Writes are always autolaunched Flows. (See Rule 1 above.)
+- **`"The action <Name> is missing the input parameters…"` in the Simulator** = that action declares zero inputs. Add a required `Input:ContactID` bound to the hardcoded `DemoContactId` var, wired through template + PromptFlow. (See Rule 2 above.)
 - **Empty read results** = SOQL is in the PromptFlow (user context), not the subflow. Move it. (`building-system-context-agent-data-flows`.)
 - **Messaging escalation pointed at the voice flow** = runtime failure. Per-channel, always.
 - **Voice binding isn't metadata** — it's a Setup handoff. Don't promise it via deploy.

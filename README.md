@@ -55,6 +55,7 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `applying-slds`
 - `authoring-serviceplanner-sra-topics`
 - `build-agentforce-service-demo`
+- `building-contact-center-kpis-agentwork`
 - `building-entitlements-slas`
 - `building-mobile-apps`
 - `building-nba-conversation-intelligence`
@@ -74,6 +75,7 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `community-share`
 - `configuring-connected-apps`
 - `connecting-agent-data-library`
+- `connecting-channels-to-asa`
 - `connecting-datacloud`
 - `creating-b2b-commerce-store`
 - `customer-advocate`
@@ -216,13 +218,22 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 
 - `authoring-serviceplanner-sra-topics`
 
-**Agentforce Service Agent (ASA) build suite** — hard-won patterns from an end-to-end voice ASA build (system-context data flows, agent-user permissions, data-library wiring, locked-object workarounds, and the end-to-end playbook):
+**Agentforce Service Agent (ASA) build suite** — hard-won patterns from an end-to-end voice ASA build (system-context data flows, agent-user permissions, data-library wiring, locked-object workarounds, channel connection, and the end-to-end playbook). The playbook now states two hard rules learned the hard way: **prompt templates are for DATA READS ONLY** (create/modify/delete must be autolaunched Flows), and **every agent action needs ≥1 input parameter** (the `Input:ContactID`-hardcoded-to-the-demo-persona pattern; a zero-input action throws the Simulator's "missing input parameters" error):
 
 - `building-system-context-agent-data-flows`
 - `scoping-agent-user-permissions`
 - `connecting-agent-data-library`
 - `handling-locked-standard-objects`
+- `connecting-channels-to-asa`
 - `building-voice-asa-agent`
+
+**Connecting voice + messaging channels to an ASA** — the connect-the-channels map: how a live VOICE call and an in-app/web MESSAGING chat get INTO the agent (inbound omni-flow → `routeWork` routingType=Copilot → BotDefinition) and how the agent hands a conversation OUT to a human — to a QUEUE, a SKILL, or DIRECT to a specific rep — on `@utils.escalate`. Nails the two perennial mistakes: (1) messaging escalation binds in the agent `.agent` metadata but VOICE binds only in Setup (never metadata); (2) messaging must use the messaging escalation flow, never the voice one. Points at the deep-dive skills that carry the deployable XML.
+
+- `connecting-channels-to-asa`
+
+**Contact-center KPIs from the AgentWork object** — build accurate Speed-to-Answer (ASA), Abandoned, and Accepted-by-a-genuine-HUMAN KPIs on `VoiceCall` and `MessagingSession`, driven off `AgentWork`. Covers the custom fields (`Entered_Queue_Timestamp__c`, `Accepted_By_Human_Timestamp__c`, `Abandoned__c`, the `Speed_To_Answer_Seconds__c` formula), the record-triggered AgentWork stamping flow, and the whole reason it's hard — the **double-accept problem**: an escalated conversation produces TWO accepted AgentWork rows (first the bot/ASA/Omni leg as an Automated Process user, then the real human), so the human stamp must gate on `UserType='Standard'` AND `Profile.Name != 'Einstein Agent User'`. Includes the acceptor-User-lookup pattern and the auto-store-vs-`queriedFields` runtime-fault gotcha.
+
+- `building-contact-center-kpis-agentwork`
 
 **Service Cloud implementation-pattern suite:**
 
