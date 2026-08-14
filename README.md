@@ -1,6 +1,6 @@
 # Claude Code Skills
 
-A collection of **149 Claude Code skills** for Salesforce development — Agentforce, Service Cloud, OmniStudio, Data Cloud, LWC, metadata, B2B Commerce, and more. Each skill is a self-contained folder with a `SKILL.md` (and optional `references/` and `assets/`) that Claude Code loads on demand.
+A collection of **155 Claude Code skills** for Salesforce development — Agentforce, Service Cloud, OmniStudio, Data Cloud, LWC, metadata, B2B Commerce, and more. Each skill is a self-contained folder with a `SKILL.md` (and optional `references/` and `assets/`) that Claude Code loads on demand.
 
 ## What is a skill?
 
@@ -53,6 +53,7 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `analyzing-omnistudio-dependencies`
 - `applying-cms-brand`
 - `applying-slds`
+- `assigning-sra-via-flow`
 - `authoring-serviceplanner-sra-topics`
 - `build-agentforce-service-demo`
 - `building-contact-center-kpis-agentwork`
@@ -217,6 +218,10 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 **ServicePlanner (SRA) topics with real actions** — build a classic ServicePlanner Service Rep Assistant into a multi-topic guided-resolution assistant AND attach a real prompt-template/flow action to a topic. The non-obvious lesson: a ServicePlanner `GenAiPlannerBundle` DOES accept custom `generatePromptResponse`/`flow` actions, but only as per-topic `<localActions>` (with a matching per-topic `<localActionLinks>`) — a top-level `<plannerActions>` throws the opaque `ErrorId (-1341094778)`. Covers the decomposed bundle shape, the numbered `Step N:` instruction convention (HTML/bold + per-step customer scripting), per-topic knowledge actions, action-name uniqueness, `localActions/<topic>/<action>/schema.json`, and the deactivate → deploy → reactivate lifecycle.
 
 - `authoring-serviceplanner-sra-topics`
+
+**Assigning which SRA is shown (multi-agent assignment flow)** — the OPTIONAL *Define Your Multi-Agent Assignment Criteria* autolaunched flow that decides which ServicePlanner SRA appears on a live VoiceCall / MessagingSession / Case, keyed on that record's fields. The whole contract is two variables: an input String named exactly `recordId`, and one output String whose **value must be the SRA's agent API name** (`BotDefinition.DeveloperName`, not a label/Id). Covers the exact variable shapes, per-channel object differences, building one from scratch, and scaling an existing flow to a new brand/SRA.
+
+- `assigning-sra-via-flow`
 
 **Agentforce Service Agent (ASA) build suite** — hard-won patterns from an end-to-end voice ASA build (system-context data flows, agent-user permissions, data-library wiring, locked-object workarounds, channel connection, and the end-to-end playbook). The playbook now states two hard rules learned the hard way: **prompt templates are for DATA READS ONLY** (create/modify/delete must be autolaunched Flows), and **every agent action needs ≥1 input parameter** (the `Input:ContactID`-hardcoded-to-the-demo-persona pattern; a zero-input action throws the Simulator's "missing input parameters" error):
 

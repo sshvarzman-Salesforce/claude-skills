@@ -357,3 +357,7 @@ A `flow`-type action (`invocationTargetType=flow`) is attached the same way and 
 | Adding a `<localActions>` entry / schema for a standard quick action (e.g. `Email`) | Don't — a standard quick action is surfaced by INSTRUCTION TEXT only; there is no metadata attachment for it |
 | Quick action doesn't appear in the plan because it's mentioned mid-sentence | Make it a leading, explicit directive and name the action by its exact console label (bolded) at least twice in the step |
 | `Bot.DeveloperName` in BotVersion SOQL | Use `BotDefinition.DeveloperName`; don't add `--use-tooling-api` (BotVersion is a regular object) |
+
+## Related: choosing WHICH SRA is shown (multi-agent assignment)
+
+Authoring a topic/bundle is *what one SRA does*. Deciding *which SRA appears* on a live VoiceCall / MessagingSession / Case (the Setup step **Define Your Multi-Agent Assignment Criteria**, needed only when an org has 2+ SRAs) is a separate autolaunched flow: input `recordId`, one output String whose **value is the SRA's agent API name** (`BotDefinition.DeveloperName`). See the **`assigning-sra-via-flow`** skill for that flow's exact contract, per-channel differences, and how to scale it to a new brand.
