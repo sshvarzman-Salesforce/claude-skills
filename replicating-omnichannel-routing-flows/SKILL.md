@@ -25,6 +25,8 @@ These flows **cannot be blindly copied** between orgs because they embed **org-s
 
 There is one flow **per channel**: a Messaging variant (updates `MessagingSession`, routes on `sfdc_livemessage`) and a Voice variant (updates `VoiceCall`, routes on `sfdc_phone`).
 
+> **Escalation (this skill) vs. inbound-to-ASA (a different skill).** This skill covers `routeWork` with **`routingType=QueueBased`** — routing to a **human queue**. To route the *other* direction — an inbound VoiceCall/MessagingSession **to an Agentforce Service Agent (copilot)** — use the `routing-inbound-conversations-to-asa` skill: that one uses **`routingType=Copilot`** with `copilotId`/`copilotLabel` **plus a REQUIRED fallback `queueId`+`queueLabel`** (a copilot `routeWork` still mandates a fallback queue). Don't conflate the two `routingType`s.
+
 ## Anatomy — what is org-specific vs. portable
 
 | Element | Portable as-is? | Notes |

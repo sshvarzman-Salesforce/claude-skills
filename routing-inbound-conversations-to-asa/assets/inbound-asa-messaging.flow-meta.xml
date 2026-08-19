@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Inbound MESSAGING routing flow: hands a live MessagingSession to an Agentforce Service Agent (ASA).
+  Verified live (CitiBank_ASA_Inbound_Messaging, Active). Swap the tokens marked  <<...>>  for your org:
+    <<COPILOT_ID>>           the ASA messaging agent config Id (0Xx...) — a RAW string, NOT a BotDefinition setupReference
+    <<COPILOT_LABEL>>        the ASA agent's display label
+    <<MSG_CHANNEL_ID>>       the messaging ServiceChannel Id (0N9...) for sfdc_livemessage in this org
+    <<FALLBACK_QUEUE_ID>>    a REAL Group.Id (00G...) queue — REQUIRED even when routing to a copilot
+    <<FALLBACK_QUEUE_LABEL>> that queue's label
+    <<CUSTOMER_DEMO_VALUE>>  (optional) demo-tag stamped on the MessagingSession; delete the inputAssignment if unused
+  Contact resolution: findMatchingIndividuals on phone -> set MessagingEndUser.ContactId (surfaces as
+  MessagingSession.EndUserContactId). The flow's input variable is  input_record (SObject MessagingSession).
+-->
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <name>Load_Contact_by_Phone_Number</name>
+        <label>Load Contact by Phone Number</label>
+        <locationX>182</locationX>
+        <locationY>242</locationY>
+        <actionName>findMatchingIndividuals</actionName>
+        <actionType>findMatchingIndividuals</actionType>
+        <connector>
+            <targetReference>Loop_Search_Results</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>searchTerm</name>
+            <value>
+                <elementReference>phone</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>searchFields</name>
+            <value>
+                <stringValue>Phone</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>searchObject</name>
+            <value>
+                <stringValue>Contact</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>findMatchingIndividuals</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Route_to_ASA</name>
+        <label>Route to ASA</label>
+        <locationX>182</locationX>
+        <locationY>1166</locationY>
+        <actionName>routeWork</actionName>
+        <actionType>routeWork</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>recordId</name>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>serviceChannelId</name>
+            <value>
+                <stringValue>&lt;&lt;MSG_CHANNEL_ID&gt;&gt;</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>serviceChannelLabel</name>
+            <value>
+                <stringValue>LiveMessage</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>serviceChannelDevName</name>
+            <value>
+                <stringValue>sfdc_livemessage</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>routingType</name>
+            <value>
+                <stringValue>Copilot</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>queueId</name>
+            <value>
+                <stringValue>&lt;&lt;FALLBACK_QUEUE_ID&gt;&gt;</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>queueLabel</name>
+            <value>
+                <stringValue>&lt;&lt;FALLBACK_QUEUE_LABEL&gt;&gt;</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>copilotId</name>
+            <value>
+                <stringValue>&lt;&lt;COPILOT_ID&gt;&gt;</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>copilotLabel</name>
+            <value>
+                <stringValue>&lt;&lt;COPILOT_LABEL&gt;&gt;</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>routeWork</nameSegment>
+        <offset>0</offset>
+    </actionCalls>
+    <apiVersion>62.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <name>Assign_Contact_to_Messaging_User</name>
+        <label>Assign Contact to Messaging User</label>
+        <locationX>50</locationX>
+        <locationY>758</locationY>
+        <assignmentItems>
+            <assignToReference>Load_Messaging_User.ContactId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>contact.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Update_Messaging_User</targetReference>
+        </connector>
+    </assignments>
+    <decisions>
+        <name>Check_Found_Contact</name>
+        <label>Check Found Contact</label>
+        <locationX>182</locationX>
+        <locationY>650</locationY>
+        <defaultConnector>
+            <targetReference>Stamp_Messaging_Session</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No Contact</defaultConnectorLabel>
+        <rules>
+            <name>Found_Contact</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>contact</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_Contact_to_Messaging_User</targetReference>
+            </connector>
+            <label>Found Contact</label>
+        </rules>
+    </decisions>
+    <description>Inbound messaging routing flow: finds the Contact by phone, links it to the MessagingEndUser (surfaces as EndUserContactId), and hands the session to the ASA agent (routingType=Copilot) with a required fallback queue.</description>
+    <environments>Default</environments>
+    <interviewLabel>Inbound ASA Messaging {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Inbound ASA Messaging</label>
+    <loops>
+        <name>Loop_Search_Results</name>
+        <label>Loop Search Results</label>
+        <locationX>182</locationX>
+        <locationY>350</locationY>
+        <collectionReference>Load_Contact_by_Phone_Number.contactIds</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Load_Found_Contact</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Check_Found_Contact</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <processType>RoutingFlow</processType>
+    <recordLookups>
+        <name>Load_Found_Contact</name>
+        <label>Load Found Contact</label>
+        <locationX>270</locationX>
+        <locationY>458</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Loop_Search_Results</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Loop_Search_Results</elementReference>
+            </value>
+        </filters>
+        <object>Contact</object>
+        <outputReference>contact</outputReference>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Name</queriedFields>
+        <sortField>CreatedDate</sortField>
+        <sortOrder>Asc</sortOrder>
+    </recordLookups>
+    <recordLookups>
+        <name>Load_Messaging_User</name>
+        <label>Load Messaging User</label>
+        <locationX>182</locationX>
+        <locationY>134</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Load_Contact_by_Phone_Number</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>input_record.MessagingEndUserId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>MessagingEndUser</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <name>Stamp_Messaging_Session</name>
+        <label>Stamp Messaging Session</label>
+        <locationX>182</locationX>
+        <locationY>1058</locationY>
+        <connector>
+            <targetReference>Route_to_ASA</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Customer_Demo__c</field>
+            <value>
+                <stringValue>&lt;&lt;CUSTOMER_DEMO_VALUE&gt;&gt;</stringValue>
+            </value>
+        </inputAssignments>
+        <object>MessagingSession</object>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Update_Messaging_User</name>
+        <label>Update Messaging User</label>
+        <locationX>50</locationX>
+        <locationY>866</locationY>
+        <connector>
+            <targetReference>Stamp_Messaging_Session</targetReference>
+        </connector>
+        <inputReference>Load_Messaging_User</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>56</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Load_Messaging_User</targetReference>
+        </connector>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>contact</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Contact</objectType>
+    </variables>
+    <variables>
+        <name>input_record</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <objectType>MessagingSession</objectType>
+    </variables>
+    <variables>
+        <name>phone</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>recordId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+</Flow>
