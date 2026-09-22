@@ -3,8 +3,8 @@ name: linking-individuals-by-phone-in-flows
 description: "Auto-link the individual behind an inbound (or outbound) conversation to the conversation record, by phone number, inside a Flow — using the OOB findMatchingIndividuals action. Given a phone/ANI on a VoiceCall, MessagingSession, or Case, search Contact / Person Account / Lead, size the match collection, and on exactly one match stamp the host record's lookup (e.g. Contact__c) and RelatedRecordId; on zero or multiple, write an info message + latch a filterable checkbox so a screen/LWC component can react. Covers the findMatchingIndividuals inputs (searchTerm/searchFields/searchObject) and its contactIds text-collection output, the AssignCount operator to size the collection (and the EqualsCount UI-label vs AssignCount metadata-enum gotcha), the 0 / 1 / >1 decision pattern, the single-match Get Records (Id In collection) + lookup/RelatedRecordId linking, and the Long-Text-Area cannot-be-referenced-in-a-formula gotcha that forces a flow-set checkbox. Use whenever a flow must resolve and link a caller/chatter/emailer to a record by their phone number. Trigger on: \"match caller to contact\", \"link individual by phone in a flow\", \"findMatchingIndividuals\", \"screen-pop the caller's contact\", \"populate VoiceCall Contact from phone\", \"count a flow collection size / EqualsCount\", \"which is the metadata operator for Equals Count\"."
 compatibility: "Salesforce CLI (sf) v2+; Flow (record-triggered/autolaunched or screen); findMatchingIndividuals invocable action available in the org; VoiceCall/MessagingSession/Case host objects; Contact/Person Account/Lead search objects"
 metadata:
-  version: "1.0"
-  last_updated: "2026-08-10"
+  version: "1.1"
+  last_updated: "2026-09-22"
 ---
 
 # Linking Individuals by Phone in Flows
@@ -81,7 +81,8 @@ An out-of-the-box invocable Flow action (the same one the standard MIAW/SCV omni
     <flowTransactionModel>CurrentTransaction</flowTransactionModel>
     <inputParameters>
         <name>searchTerm</name>
-        <value><elementReference>varSearchPhone</elementReference></value>
+        <!-- MUST be a merge-field string template, NOT <elementReference>. See the searchTerm gotcha below. -->
+        <value><stringValue>{!varSearchPhone}</stringValue></value>
     </inputParameters>
     <inputParameters>
         <name>searchFields</name>
@@ -96,6 +97,26 @@ An out-of-the-box invocable Flow action (the same one the standard MIAW/SCV omni
     <connector><targetReference>Count_Matches</targetReference></connector>
 </actionCalls>
 ```
+
+### THE `searchTerm` gotcha: pass it as `{!var}`, not `<elementReference>`
+
+`searchTerm` is a **string** input, and this action only receives the variable's value when you pass it as a **merge-field string template** — `<stringValue>{!varSearchPhone}</stringValue>`. If you author it as a bare `<elementReference>varSearchPhone</elementReference>` (the shape that works for most other actions), the flow **deploys and activates cleanly but silently searches on an empty term** — it finds nothing, `AssignCount` is 0, and every call falls into the zero-match branch. No error, no fault, just "no matches" for every record. This was ground-truthed twice: the record-triggered and screen versions both had to be switched to `{!varSearchPhone}` before `findMatchingIndividuals` returned results.
+
+```xml
+<!-- WRONG — deploys fine, matches nothing, always 0 -->
+<inputParameters>
+    <name>searchTerm</name>
+    <value><elementReference>varSearchPhone</elementReference></value>
+</inputParameters>
+
+<!-- RIGHT — the value actually reaches the action -->
+<inputParameters>
+    <name>searchTerm</name>
+    <value><stringValue>{!varSearchPhone}</stringValue></value>
+</inputParameters>
+```
+
+(This applies specifically to `findMatchingIndividuals`' string inputs. `searchFields`/`searchObject` are literal strings anyway. When you build it in Flow Builder the UI does this for you — the bug only bites hand-authored XML.)
 
 > **Fallback:** if the action isn't available or errors in a pure-screen-flow context, a **Get Records on the search object filtered by `Phone = {!varSearchPhone}`** is functionally identical — size that collection with `AssignCount` the same way. Prefer the OOB action (it handles phone normalization/matching heuristics).
 
@@ -320,6 +341,7 @@ For a screen/autolaunched flow, add a `recordId` (String, `isInput=true`) instea
 | Mistake | Fix |
 |---|---|
 | `EqualsCount` in the XML | Use `AssignCount` (that's the metadata enum; "Equals Count" is only the Builder UI label) |
+| `searchTerm` passed as `<elementReference>varSearchPhone</elementReference>` | Deploys fine but searches an empty term → always 0 matches. Pass it as `<stringValue>{!varSearchPhone}</stringValue>` |
 | Adding a Loop to count matches | Delete it — `AssignCount` sizes the collection in one assignment |
 | Formula checkbox on the Long-Text info field | Impossible — formulas can't reference Long Text Area; set a plain Checkbox in the flow |
 | Long-Text field used as a component-visibility filter | Not allowed — filter on the flow-set Checkbox instead |

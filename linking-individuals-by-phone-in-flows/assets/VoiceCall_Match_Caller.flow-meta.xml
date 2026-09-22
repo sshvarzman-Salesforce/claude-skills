@@ -103,7 +103,7 @@
         <inputParameters>
             <name>searchTerm</name>
             <value>
-                <elementReference>varSearchPhone</elementReference>
+                <stringValue>{!varSearchPhone}</stringValue>
             </value>
         </inputParameters>
         <inputParameters>
