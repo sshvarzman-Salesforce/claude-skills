@@ -1,9 +1,9 @@
 ---
 name: linking-individuals-by-phone-in-flows
-description: "Auto-link the individual behind an inbound (or outbound) conversation to the conversation record, by phone number, inside a Flow — using the OOB findMatchingIndividuals action. Given a phone/ANI on a VoiceCall, MessagingSession, or Case, search Contact / Person Account / Lead, size the match collection, and on exactly one match stamp the host record's lookup (e.g. Contact__c) and RelatedRecordId; on zero or multiple, write an info message + latch a filterable checkbox so a screen/LWC component can react. Covers the findMatchingIndividuals inputs (searchTerm/searchFields/searchObject) and its contactIds text-collection output, the AssignCount operator to size the collection (and the EqualsCount UI-label vs AssignCount metadata-enum gotcha), the 0 / 1 / >1 decision pattern, the single-match Get Records (Id In collection) + lookup/RelatedRecordId linking, and the Long-Text-Area cannot-be-referenced-in-a-formula gotcha that forces a flow-set checkbox. Use whenever a flow must resolve and link a caller/chatter/emailer to a record by their phone number. Trigger on: \"match caller to contact\", \"link individual by phone in a flow\", \"findMatchingIndividuals\", \"screen-pop the caller's contact\", \"populate VoiceCall Contact from phone\", \"count a flow collection size / EqualsCount\", \"which is the metadata operator for Equals Count\"."
+description: "Auto-link the individual behind an inbound (or outbound) conversation to the conversation record, by phone number, inside a Flow — using the OOB findMatchingIndividuals action. Given a phone/ANI on a VoiceCall, MessagingSession, or Case, search Contact / Person Account / Lead, size the match collection, and on exactly one match stamp the host record's lookup (e.g. Contact__c) and RelatedRecordId; on zero or multiple, write an info message + latch a filterable checkbox so a screen/LWC component can react. Covers the findMatchingIndividuals inputs (searchTerm/searchFields/searchObject) and its contactIds text-collection output, the AssignCount operator to size the collection (and the EqualsCount UI-label vs AssignCount metadata-enum gotcha), the 0 / 1 / >1 decision pattern, the single-match Get Records (Id In collection) + lookup/RelatedRecordId linking, and the Long-Text-Area cannot-be-referenced-in-a-formula gotcha that forces a flow-set checkbox. Also covers the screen-flow variant that shows ALL matches in a flowruntime:datatable for the rep to pick one (with the SINGLE_SELECT enum + numeric maxRowSelection=1 selection-mode gotcha and the T→Contact dataTypeMappings requirement). Use whenever a flow must resolve and link a caller/chatter/emailer to a record by their phone number. Trigger on: \"match caller to contact\", \"link individual by phone in a flow\", \"findMatchingIndividuals\", \"screen-pop the caller's contact\", \"populate VoiceCall Contact from phone\", \"count a flow collection size / EqualsCount\", \"which is the metadata operator for Equals Count\", \"datatable single row selection in a screen flow\", \"pick a contact from a datatable to link\"."
 compatibility: "Salesforce CLI (sf) v2+; Flow (record-triggered/autolaunched or screen); findMatchingIndividuals invocable action available in the org; VoiceCall/MessagingSession/Case host objects; Contact/Person Account/Lead search objects"
 metadata:
-  version: "1.1"
+  version: "1.2"
   last_updated: "2026-09-22"
 ---
 
@@ -247,6 +247,63 @@ For a **record-triggered flow** the update is just `<recordUpdates><inputReferen
 
 ---
 
+## Screen-flow variant: let the rep pick from ALL matches (datatable)
+
+The record-triggered flow above only auto-links on **exactly one** match. The companion pattern is a **screen flow** that takes the conversation `recordId`, runs the same `findMatchingIndividuals` search, and — when there are matches — shows **every** matched Contact in a **`flowruntime:datatable`** with single-row selection, so the rep picks the right one and clicks Next to link it. (Zero matches → a "no matches" screen instead.)
+
+Structure: `recordId` (String input) → Get host record → `Which_Phone` decision → set `varSearchPhone` → `findMatchingIndividuals` → `AssignCount` → `Any_Matches` decision (`varCount > 0`): **has matches** → Get **all** matched Contacts (`Id In {!...contactIds}`, **`getFirstRecordOnly=false`**) → datatable screen → assign `firstSelectedRow.Id` to the host lookup + `RelatedRecordId` → Update; **no matches** → info screen.
+
+### The datatable field — the config that actually gives single-row selection
+
+This is the whole gotcha of the screen variant. The `flowruntime:datatable` selection parameters are **not** the strings you'd guess:
+
+```xml
+<fields>
+    <name>Contact_Table</name>
+    <dataTypeMappings>                 <!-- REQUIRED for the generic datatable, else deploy: "missing a type mapping 'T'" -->
+        <typeName>T</typeName>
+        <typeValue>Contact</typeValue>
+    </dataTypeMappings>
+    <extensionName>flowruntime:datatable</extensionName>
+    <fieldType>ComponentInstance</fieldType>
+    <inputParameters>
+        <name>selectionMode</name>
+        <value><stringValue>SINGLE_SELECT</stringValue></value>   <!-- the enum is SINGLE_SELECT, NOT "SingleSelect" -->
+    </inputParameters>
+    <inputParameters>
+        <name>minRowSelection</name>
+        <value><numberValue>0.0</numberValue></value>            <!-- a NUMBER, not the string "required" -->
+    </inputParameters>
+    <inputParameters>
+        <name>maxRowSelection</name>
+        <value><numberValue>1.0</numberValue></value>            <!-- THIS enforces single-row selection -->
+    </inputParameters>
+    <inputParameters>
+        <name>tableData</name>
+        <value><elementReference>Get_Matched_Contacts</elementReference></value>
+    </inputParameters>
+    <inputParameters>
+        <name>columns</name>
+        <value><stringValue>[{"apiName":"Name","label":"Name","type":"text", ... }]</stringValue></value>
+    </inputParameters>
+    <inputParameters>
+        <name>label</name>
+        <value><stringValue>Data Table</stringValue></value>
+    </inputParameters>
+    <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+    <isRequired>true</isRequired>
+    <storeOutputAutomatically>true</storeOutputAutomatically>
+</fields>
+```
+
+**Read the selected row** as `{!Contact_Table.firstSelectedRow.Id}` / `{!Contact_Table.firstSelectedRow.Name}` (available because `storeOutputAutomatically=true`). Assign it to the host lookup + `RelatedRecordId` exactly like the auto-link branch, then Update.
+
+> **The selection-mode gotcha (ground-truthed in-org):** hand-authoring `selectionMode = SingleSelect` with `minRowSelection = required` (the plausible-looking string values) is **wrong** — that's not the shape the component reads. The correct, deployed values are `selectionMode = SINGLE_SELECT` (upper-snake enum), `maxRowSelection = 1.0` (**a `numberValue`** — this is what actually caps selection at one row), and `minRowSelection = 0.0` (also a number). When you configure the datatable in Flow Builder the UI writes these for you; the bug only bites hand-authored XML. Get the enum casing and the numeric `maxRowSelection` right or you get multi-select / a silently mis-bound `firstSelectedRow`.
+
+The multi-match Get must set **`getFirstRecordOnly=false`** and query every column the datatable shows (`Name`, `Phone`, `MobilePhone`, `Email`, …) — unlike the single-match auto-link Get, which is `getFirstRecordOnly=true`.
+
+---
+
 ## Zero / multiple → info text + a filterable checkbox
 
 The other two branches write a human-readable message to a **Long Text Area** field on the host record and flip a **Checkbox** to `true`:
@@ -342,6 +399,9 @@ For a screen/autolaunched flow, add a `recordId` (String, `isInput=true`) instea
 |---|---|
 | `EqualsCount` in the XML | Use `AssignCount` (that's the metadata enum; "Equals Count" is only the Builder UI label) |
 | `searchTerm` passed as `<elementReference>varSearchPhone</elementReference>` | Deploys fine but searches an empty term → always 0 matches. Pass it as `<stringValue>{!varSearchPhone}</stringValue>` |
+| Datatable `selectionMode = SingleSelect` + `minRowSelection = required` (strings) | Wrong shape. Use `selectionMode = SINGLE_SELECT` (enum) + `maxRowSelection = 1.0` (numberValue) + `minRowSelection = 0.0` (numberValue) for single-row selection |
+| Datatable missing `<dataTypeMappings>T→Contact` | Deploy fails "missing a type mapping 'T'"; the generic `flowruntime:datatable` needs the type mapping on the field |
+| Multi-match Get with `getFirstRecordOnly=true` | The datatable shows only one row — set `getFirstRecordOnly=false` and query every column the datatable displays |
 | Adding a Loop to count matches | Delete it — `AssignCount` sizes the collection in one assignment |
 | Formula checkbox on the Long-Text info field | Impossible — formulas can't reference Long Text Area; set a plain Checkbox in the flow |
 | Long-Text field used as a component-visibility filter | Not allowed — filter on the flow-set Checkbox instead |
