@@ -12,11 +12,19 @@
  *   {{QueryLogic}}        → Replace with actual SOQL + payload building logic
  *
  * Rules:
- *   - global without sharing (EinsteinServiceAgent User has no sharing access)
+ *   - Sharing is SURFACE-SPECIFIC (see guides/surfaces.md):
+ *       SRA / EinsteinServiceAgent → global without sharing (that user has no sharing)
+ *       Employee Agent / Cowork    → with sharing unless the run-as user is proven bare
  *   - @InvocableMethod description MUST include show_command language
  *   - All Input fields: required=false (Agent Builder resolves them)
- *   - Always include messagingSessionId as fallback Contact resolution
- *   - Error case: return valid DTO with {"error": "..."} — never null
+ *   - On SRA / messaging demos: include messagingSessionId + the three-tier Contact ladder
+ *     (READS only — never use the ladder to choose a send target)
+ *   - NEVER throw. Every failure path returns a valid DTO carrying {"error": "..."}
+ *     so the LWC can render an error state — a thrown exception produces no output
+ *     at all, so the card cannot render and the user just sees a generic failure.
+ *   - Scope every SOQL query to a demo-owned field so a shared org's unrelated
+ *     records can't surface in the conversation
+ *   - Format dates/defaults in Apex before serializing; keep the LWC a pure renderer
  */
 global without sharing class {{ActionClassName}} {
 
@@ -38,9 +46,18 @@ global without sharing class {{ActionClassName}} {
         @InvocableVariable
         global Boolean success;
 
+        // @InvocableVariable is REQUIRED here. It is what declares the DTO as an
+        // action output. (Inside the DTO, the String field is @AuraEnabled only.)
         @InvocableVariable(label='{{ActionLabel}} Output'
             description='Structured payload for the CLT renderer')
         global {{DtoClassName}} {{dtoFieldName}};
+
+        // Flat passthroughs — lift the 2-3 scalars the planner needs to chain a
+        // follow-up action, so it never has to re-parse the card JSON. Leave these
+        // UNfiltered in Agent Builder; keep the card output filtered. Add sparingly:
+        // every unfiltered output is extra reasoning context.
+        // {{PassthroughFields}}
+        // e.g. @InvocableVariable global String faultyDeviceId;
 
         @InvocableVariable
         global String errorMessage;
@@ -64,19 +81,23 @@ global without sharing class {{ActionClassName}} {
                         SELECT EndUserContactId FROM MessagingSession
                         WHERE Id = :inp.messagingSessionId LIMIT 1
                     ];
-                    if (!sessions.isEmpty()) {
+                    if (!sessions.isEmpty() && sessions[0].EndUserContactId != null) {
                         resolvedContactId = sessions[0].EndUserContactId;
                     }
                 }
 
-                // Tier 3: Most recent active session fallback
+                // Tier 3: Most recent active session that actually HAS a contact.
+                // Filter on EndUserContactId in the WHERE clause, not after the query:
+                // if the newest active session has a null contact, filtering afterwards
+                // returns nothing and the card fails, instead of falling through to the
+                // newest session that does have one.
                 if (String.isBlank(resolvedContactId)) {
                     List<MessagingSession> sessions = [
                         SELECT EndUserContactId FROM MessagingSession
-                        WHERE Status = 'Active'
+                        WHERE Status = 'Active' AND EndUserContactId != NULL
                         ORDER BY CreatedDate DESC LIMIT 1
                     ];
-                    if (!sessions.isEmpty() && sessions[0].EndUserContactId != null) {
+                    if (!sessions.isEmpty()) {
                         resolvedContactId = sessions[0].EndUserContactId;
                     }
                 }
@@ -90,14 +111,25 @@ global without sharing class {{ActionClassName}} {
                 //              WHERE Id = :resolvedContactId LIMIT 1];
                 // payload.put('customerName', c.FirstName + ' ' + c.LastName);
 
+                // Soft failures (no contact resolved, no records found) go into the
+                // payload as 'error' so the card still renders an error state:
+                //   if (String.isBlank(resolvedContactId)) {
+                //       payload.put('error', 'No customer could be resolved for this conversation.');
+                //   }
+
                 res.{{dtoFieldName}} = new {{DtoClassName}}(JSON.serialize(payload));
-                res.success = true;
+                res.success = !payload.containsKey('error');
 
             } catch (Exception e) {
+                // Serialize the error with JSON.serialize — never hand-build the JSON
+                // string. A message containing a quote, backslash, or newline breaks
+                // manual escaping, the LWC's JSON.parse then throws, and the error
+                // state itself fails to render.
                 res.success = false;
                 res.errorMessage = e.getMessage();
                 res.{{dtoFieldName}} = new {{DtoClassName}}(
-                    '{"error":"' + e.getMessage().replace('"', '\\"') + '"}');
+                    JSON.serialize(new Map<String, Object>{ 'error' => e.getMessage() })
+                );
             }
             results.add(res);
         }

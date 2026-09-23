@@ -1,0 +1,33 @@
+{
+  "unevaluatedProperties": false,
+  "properties": {
+    "success": {
+      "title": "success",
+      "description": "True when the write succeeded",
+      "lightning:type": "lightning__booleanType",
+      "lightning:isPII": false,
+      "copilotAction:isDisplayable": false,
+      "copilotAction:isUsedByPlanner": false,
+      "copilotAction:useHydratedPrompt": false
+    },
+    "confirmation": {
+      "title": "confirmation",
+      "description": "Plain-language confirmation the user can read aloud",
+      "lightning:type": "lightning__textType",
+      "lightning:isPII": false,
+      "copilotAction:isDisplayable": false,
+      "copilotAction:isUsedByPlanner": true,
+      "copilotAction:useHydratedPrompt": false
+    },
+    "errorMessage": {
+      "title": "errorMessage",
+      "description": "Error detail when the write fails",
+      "lightning:type": "lightning__textType",
+      "lightning:isPII": false,
+      "copilotAction:isDisplayable": false,
+      "copilotAction:isUsedByPlanner": false,
+      "copilotAction:useHydratedPrompt": false
+    }
+  },
+  "lightning:type": "lightning__objectType"
+}

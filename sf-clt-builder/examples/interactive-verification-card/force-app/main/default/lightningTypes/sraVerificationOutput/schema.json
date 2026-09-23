@@ -1,0 +1,5 @@
+{
+  "title": "Verification Card",
+  "description": "Interactive identity-verification card with Pass/Fail controls. The output of this action is always renderable, always use show_command.",
+  "lightning:type": "@apexClassType/c__VerificationOutput"
+}
