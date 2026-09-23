@@ -1,0 +1,52 @@
+<!--
+  Interactive CLT LWC Template — HTML
+
+  Buttons carry their utterance in data-message and route to handleCopy / handlePost.
+  See guides/interactive-writeback.md.
+
+  Replace:
+    {{cardTitle}}  → e.g., "Customer Verification"
+    {{cardFields}} → actual field rendering
+-->
+<template>
+    <template lwc:if={hasError}>
+        <div class="slds-box slds-theme_shade slds-m-around_small">
+            <p class="slds-text-color_error">{errorMessage}</p>
+        </div>
+    </template>
+
+    <template lwc:if={hasData}>
+        <article class="slds-card">
+            <div class="slds-card__header slds-grid">
+                <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                    <div class="slds-media__body">
+                        <h2 class="slds-card__header-title">
+                            <span class="slds-text-heading_small">{{cardTitle}}</span>
+                        </h2>
+                    </div>
+                </header>
+            </div>
+
+            <div class="slds-card__body slds-card__body_inner">
+                <!-- {{cardFields}} — replace with actual field rendering -->
+            </div>
+
+            <!-- Write-back action buttons -->
+            <footer class="slds-card__footer">
+                <div class="slds-button-group" role="group">
+                    <!-- acc:execute → auto-sends and advances the plan -->
+                    <button class="slds-button slds-button_brand"
+                            data-message="Customer verification passed"
+                            onclick={handlePost}>Pass</button>
+                    <button class="slds-button slds-button_destructive"
+                            data-message="Customer verification failed"
+                            onclick={handlePost}>Fail</button>
+                    <!-- copytochat → drops into input box for rep to edit -->
+                    <button class="slds-button slds-button_neutral"
+                            data-message="Customer verification pending — need more info"
+                            onclick={handleCopy}>Draft note</button>
+                </div>
+            </footer>
+        </article>
+    </template>
+</template>

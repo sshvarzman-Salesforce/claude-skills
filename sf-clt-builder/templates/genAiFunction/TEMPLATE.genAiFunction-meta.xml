@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Path A GenAiFunction metadata for a CLT *read* action.
+
+  Replace:
+    {{ActionApiName}}      → e.g., Summit_Ridge_Get_Customer_Equipment
+    {{ActionLabel}}        → e.g., Summit Ridge - Get Customer Equipment
+    {{ActionDescription}}  → MUST include: The output of this action is always renderable, always use show_command.
+    {{ApexClassName}}      → e.g., SummitRidgeGetEquipmentAction
+    {{ProgressMessage}}    → e.g., Pulling the installed equipment list…
+-->
+<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>{{ActionDescription}} The output of this action is always renderable, always use show_command.</description>
+    <developerName>{{ActionApiName}}</developerName>
+    <invocationTarget>{{ApexClassName}}</invocationTarget>
+    <invocationTargetType>apex</invocationTargetType>
+    <isConfirmationRequired>false</isConfirmationRequired>
+    <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+    <localDeveloperName>{{ActionApiName}}</localDeveloperName>
+    <masterLabel>{{ActionLabel}}</masterLabel>
+    <progressIndicatorMessage>{{ProgressMessage}}</progressIndicatorMessage>
+</GenAiFunction>

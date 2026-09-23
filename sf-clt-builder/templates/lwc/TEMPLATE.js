@@ -40,6 +40,8 @@ export default class {{ComponentClassName}} extends LightningElement {
             console.error('{{ComponentClassName}} parse error:', e);
             this.errorMessage = 'Error loading data.';
         }
+        // If this card sends to a customer, resolve the tab context OUTSIDE
+        // the parse try/catch (see templates/lwc-reply-routing/).
     }
 
     get hasData() {
