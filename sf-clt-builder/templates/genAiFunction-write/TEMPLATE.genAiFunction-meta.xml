@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Path A GenAiFunction metadata for a *write* action (no CLT).
+
+  Replace:
+    {{ActionApiName}}     → e.g., Summit_Ridge_Start_Equipment_Replacement
+    {{ActionLabel}}       → e.g., Summit Ridge - Start Equipment Replacement
+    {{ActionDescription}} → when to call it; no show_command language
+    {{ApexClassName}}     → e.g., SummitRidgeStartRmaAction
+    {{ProgressMessage}}   → e.g., Creating the replacement order…
+-->
+<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>{{ActionDescription}}</description>
+    <developerName>{{ActionApiName}}</developerName>
+    <invocationTarget>{{ApexClassName}}</invocationTarget>
+    <invocationTargetType>apex</invocationTargetType>
+    <isConfirmationRequired>true</isConfirmationRequired>
+    <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+    <localDeveloperName>{{ActionApiName}}</localDeveloperName>
+    <masterLabel>{{ActionLabel}}</masterLabel>
+    <progressIndicatorMessage>{{ProgressMessage}}</progressIndicatorMessage>
+</GenAiFunction>

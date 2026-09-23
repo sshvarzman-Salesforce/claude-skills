@@ -1,0 +1,5 @@
+{
+  "title": "{{Title}}",
+  "description": "{{Description}} The output of this action is always renderable, always use show_command.",
+  "lightning:type": "@apexClassType/c__{{DtoClassName}}"
+}

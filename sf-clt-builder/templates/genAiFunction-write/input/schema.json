@@ -1,0 +1,13 @@
+{
+  "unevaluatedProperties": false,
+  "properties": {
+    "recordId": {
+      "title": "Record ID",
+      "description": "The Salesforce record this write targets",
+      "lightning:type": "lightning__textType",
+      "lightning:isPII": false,
+      "copilotAction:isUserInput": false
+    }
+  },
+  "lightning:type": "lightning__objectType"
+}

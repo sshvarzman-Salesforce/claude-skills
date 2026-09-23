@@ -1,0 +1,20 @@
+{
+  "unevaluatedProperties": false,
+  "properties": {
+    "customerId": {
+      "title": "Customer ID",
+      "description": "The Salesforce Contact ID of the customer",
+      "lightning:type": "lightning__textType",
+      "lightning:isPII": false,
+      "copilotAction:isUserInput": false
+    },
+    "messagingSessionId": {
+      "title": "Messaging Session ID",
+      "description": "The Salesforce Messaging Session ID — used to resolve Contact when Customer ID is not available",
+      "lightning:type": "lightning__textType",
+      "lightning:isPII": false,
+      "copilotAction:isUserInput": false
+    }
+  },
+  "lightning:type": "lightning__objectType"
+}

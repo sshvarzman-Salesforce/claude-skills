@@ -1,6 +1,6 @@
 # Claude Code Skills
 
-A collection of **155 Claude Code skills** for Salesforce development — Agentforce, Service Cloud, OmniStudio, Data Cloud, LWC, metadata, B2B Commerce, and more. Each skill is a self-contained folder with a `SKILL.md` (and optional `references/` and `assets/`) that Claude Code loads on demand.
+A collection of **157 Claude Code skills** for Salesforce development — Agentforce, Service Cloud, OmniStudio, Data Cloud, LWC, metadata, B2B Commerce, and more. Each skill is a self-contained folder with a `SKILL.md` (and optional `references/` and `assets/`) that Claude Code loads on demand.
 
 ## What is a skill?
 
@@ -43,9 +43,10 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 
 ## Skills included
 
-149 skills, listed alphabetically:
+157 skills, listed alphabetically:
 
 - `activating-datacloud`
+- `agentforce-lightning-types`
 - `agentforce-skills-research`
 - `agentforce-testing-center`
 - `agentforce-voice-expert`
@@ -202,6 +203,11 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `validating-slds`
 
 ### Recently added
+
+**Apex-based Custom Lightning Type (CLT) cards for Agentforce surfaces** — a matched pair for building and debugging visual chat cards on Service Rep Assistant, Employee Agent (LEX), Enhanced Chat v2, and Agentforce Cowork. `sf-clt-builder` generates the full stack — renderer DTOs, Invocable actions, LWC renderers, Lightning Type bundles, GenAiFunction schemas, and surface-specific write-back — with worked examples (incl. an interactive verification card) and per-surface templates. `agentforce-lightning-types` is the debugging companion for cards that render as plain text / inconsistently / not at all: `ShowCommand` vs `InformCommand`, ECv2 Connection republish, `is_displayable`, and known GUS platform bugs (W-22250928, W-21533738). Sourced from `github.com/sfdc-brendan/Unofficial-Skills`.
+
+- `sf-clt-builder`
+- `agentforce-lightning-types`
 
 **Person Account custom fields — create on Contact, read the `__pc` mirror** — the reusable mechanics for adding a custom field to a Person Account without the classic split-field mistake. Author the person attribute on **Contact**; Salesforce auto-materializes it on **Account** as a `__pc`-suffixed field (e.g. `Member_Status__c` → `Account.Member_Status__pc`), immediately queryable via SOQL and REST/Bulk API and referenceable in Flow — you never author the Account-side field. Covers why creating it on Account directly is wrong, the one exception (roll-up summaries must live on the master Account), FLS on the Contact source field, placing it on BOTH Contact and Account page layouts, and — from a Person Account's Contact record in a Flow — traversing `Contact.AccountId → Account` (the person self-lookup) to read `__pc`/roll-up/Account-only fields in system mode. Includes the deploy/verify recipe and a worked OMERS-pension example.
 

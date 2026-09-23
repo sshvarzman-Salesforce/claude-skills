@@ -1,5 +1,17 @@
-{
-  "title" : "{{Title}}",
-  "description" : "{{Description}} The output of this action is always renderable. Always use show_command to display this to the user. Do NOT convert to text.",
-  "lightning:type" : "@apexClassType/c__{{DtoClassName}}"
-}
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Lightning Type Bundle metadata.
+
+  This file is REAL XML and requires masterLabel. Putting the type's JSON schema
+  here (as earlier versions of this template did) fails the deploy with:
+      Required field is missing: masterLabel
+  The JSON belongs in the sibling schema.json.
+
+  Replace:
+    {{Title}}       → e.g., Verification Card
+    {{Description}} → one line, plain text
+-->
+<LightningTypeBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>{{Title}}</masterLabel>
+    <description>{{Description}}</description>
+</LightningTypeBundle>

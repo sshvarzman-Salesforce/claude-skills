@@ -1,0 +1,42 @@
+{
+  "unevaluatedProperties": false,
+  "properties": {
+    "success": {
+      "title": "success",
+      "description": "True when the lookup ran successfully",
+      "lightning:type": "lightning__booleanType",
+      "lightning:isPII": false,
+      "copilotAction:isDisplayable": false,
+      "copilotAction:isUsedByPlanner": false,
+      "copilotAction:useHydratedPrompt": false
+    },
+    "{{dtoFieldName}}": {
+      "title": "{{dtoFieldName}}",
+      "description": "Structured payload for the {{lwcComponentName}} renderer. Always use show_command to display this to the user. Do NOT convert to text.",
+      "lightning:type": "c__{{lightningTypeFolderName}}",
+      "lightning:isPII": false,
+      "copilotAction:isDisplayable": true,
+      "copilotAction:isUsedByPlanner": false,
+      "copilotAction:useHydratedPrompt": false
+    },
+    "{{passthroughName}}": {
+      "title": "{{passthroughName}}",
+      "description": "Scalar the planner needs to chain the next action without re-parsing the card JSON. Duplicate this block per passthrough; delete it if the card does not chain.",
+      "lightning:type": "lightning__textType",
+      "lightning:isPII": false,
+      "copilotAction:isDisplayable": false,
+      "copilotAction:isUsedByPlanner": true,
+      "copilotAction:useHydratedPrompt": false
+    },
+    "errorMessage": {
+      "title": "errorMessage",
+      "description": "Error detail when the lookup fails",
+      "lightning:type": "lightning__textType",
+      "lightning:isPII": false,
+      "copilotAction:isDisplayable": false,
+      "copilotAction:isUsedByPlanner": false,
+      "copilotAction:useHydratedPrompt": false
+    }
+  },
+  "lightning:type": "lightning__objectType"
+}
