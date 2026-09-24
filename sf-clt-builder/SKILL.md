@@ -36,6 +36,27 @@ record, app, or home pages.
 
 ---
 
+## Rule 0: Smoke-test before you report "done"
+
+**A successful deploy is not proof the CLT works.** Deploys routinely Succeed while the
+artifact is silently broken — blank card, planner never calls the action, stale schema
+binding, a column that never materialized. The gap between "deployed" and "works" is
+exactly where CLT bugs live. So after building or changing **any** CLT, action, or agent,
+run it once and confirm real output before telling the user it's done:
+
+- **Apex / flow action** — execute it (anonymous Apex or a direct invoke) and confirm the
+  returned DTO carries real data, not an empty payload or `{"error": "..."}`.
+- **CLT card** — re-run the backing action in the target agent and confirm the card
+  actually renders. First-render is non-deterministic (~40%); re-run once before concluding
+  it's broken.
+- **Topic / action wiring** — confirm the planner *invokes* the action and the output
+  surfaces, not merely that the `GenAiPlannerBundle` deployed and the agent re-activated.
+
+Report what you verified, not what deployed. If you could not smoke-test (e.g. no run-as
+access), say so explicitly rather than implying it works.
+
+---
+
 ## When to Use This Skill
 
 Activate when the user asks to:
