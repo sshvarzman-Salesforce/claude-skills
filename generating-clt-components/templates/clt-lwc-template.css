@@ -1,0 +1,43 @@
+:host {
+  --color-bg: #ffffff;
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+  --color-border: #e5e7eb;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  display: block;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+.clt-container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+.clt-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+.clt-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.clt-item {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.clt-empty {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  margin: 0;
+}

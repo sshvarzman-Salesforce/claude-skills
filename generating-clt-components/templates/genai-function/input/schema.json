@@ -1,0 +1,14 @@
+{
+  "required": ["Details"],
+  "unevaluatedProperties": false,
+  "properties": {
+    "Details": {
+      "title": "Details",
+      "description": "JSON payload describing the view model. Normal JSON, not escaped. Shape: { /* whatever your CLT expects — describe each field for the planner */ }",
+      "lightning:type": "lightning__textType",
+      "lightning:isPII": false,
+      "copilotAction:isUserInput": false
+    }
+  },
+  "lightning:type": "lightning__objectType"
+}

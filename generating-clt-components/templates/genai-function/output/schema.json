@@ -1,0 +1,15 @@
+{
+  "unevaluatedProperties": false,
+  "properties": {
+    "__OUTPUT_VAR_NAME__": {
+      "title": "__OUTPUT_VAR_NAME__",
+      "description": "Renderable CLT — always show via show_command.",
+      "lightning:type": "c__TYPE_NAME__",
+      "lightning:isPII": false,
+      "copilotAction:isDisplayable": true,
+      "copilotAction:isUsedByPlanner": true,
+      "copilotAction:useHydratedPrompt": false
+    }
+  },
+  "lightning:type": "lightning__objectType"
+}

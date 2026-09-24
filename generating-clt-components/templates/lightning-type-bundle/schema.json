@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "__APEX_FIELD_NAME__": {
+      "type": "string",
+      "description": "JSON-encoded view model for this CLT. The LWC will parse and normalize."
+    }
+  }
+}

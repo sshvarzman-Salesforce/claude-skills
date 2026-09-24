@@ -1,0 +1,22 @@
+<template>
+  <!--
+    Bind every value via this.value (the @api getter). Never bind via a
+    field hydrated in connectedCallback() — it won't re-render when the
+    setter receives a new envelope from the agent.
+   -->
+  <div class="clt-container">
+    <h2 class="clt-title">{value.title}</h2>
+
+    <template lwc:if={value.items.length}>
+      <ul class="clt-list">
+        <template for:each={value.items} for:item="item">
+          <li key={item.id} class="clt-item">{item.label}</li>
+        </template>
+      </ul>
+    </template>
+
+    <template lwc:else>
+      <p class="clt-empty">No items.</p>
+    </template>
+  </div>
+</template>

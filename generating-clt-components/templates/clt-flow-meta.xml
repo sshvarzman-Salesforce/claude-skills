@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Autolaunched Flow that bridges the GenAiFunction's `Details` string input into
+  the Apex data class field, then returns the Apex object as the renderable
+  output variable.
+
+  Replace before deploying:
+    __FUNCTION_NAME__         e.g. Order_Confirmation
+    __OUTPUT_VAR_NAME__       must match the GenAiFunction output property name (e.g. OrderConfirmationDetails)
+    __APEX_CLASS_NAME__       Apex data class (e.g. OrderConfirmationData)
+    __APEX_FIELD_NAME__       Apex field (e.g. orderConfirmationJSON)
+
+  Why the SUBSTITUTE formula: Atlas occasionally double-escapes quotes in the
+  Details string (\\\" instead of \"). Without this normalization the LWC's
+  JSON.parse throws and the card renders blank.
+-->
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <name>Assign_to_Apex_Variable</name>
+        <label>Assign to Apex Variable</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>__OUTPUT_VAR_NAME__.__APEX_FIELD_NAME__</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>FormulaDetails</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <description>Bridge GenAiFunction Details input to the CLT Apex data class.</description>
+    <environments>Default</environments>
+    <formulas>
+        <name>FormulaDetails</name>
+        <dataType>String</dataType>
+        <expression>SUBSTITUTE({!Details}, &quot;\\\&quot;&quot;, &quot;\&quot;&quot;)</expression>
+    </formulas>
+    <interviewLabel>__FUNCTION_NAME__ {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>__FUNCTION_NAME__</label>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Assign_to_Apex_Variable</targetReference>
+        </connector>
+    </start>
+    <status>Active</status>
+    <variables>
+        <description>Renderable CLT output — assigned to the GenAiFunction output property of the same name.</description>
+        <name>__OUTPUT_VAR_NAME__</name>
+        <apexClass>__APEX_CLASS_NAME__</apexClass>
+        <dataType>Apex</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <description>JSON payload from the planner. Normal JSON, not escaped.</description>
+        <name>Details</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+</Flow>
