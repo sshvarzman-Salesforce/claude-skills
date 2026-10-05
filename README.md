@@ -1,6 +1,6 @@
 # Claude Code Skills
 
-A collection of **155 Claude Code skills** for Salesforce development — Agentforce, Service Cloud, OmniStudio, Data Cloud, LWC, metadata, B2B Commerce, and more. Each skill is a self-contained folder with a `SKILL.md` (and optional `references/` and `assets/`) that Claude Code loads on demand.
+A collection of **159 Claude Code skills** for Salesforce development — Agentforce, Service Cloud, OmniStudio, Data Cloud, LWC, metadata, B2B Commerce, and more. Each skill is a self-contained folder with a `SKILL.md` (and optional `references/` and `assets/`) that Claude Code loads on demand.
 
 ## What is a skill?
 
@@ -43,10 +43,11 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 
 ## Skills included
 
-149 skills, listed alphabetically:
+159 skills, listed alphabetically:
 
 - `activating-datacloud`
 - `agentforce-skills-research`
+- `agentforce-voice-builder`
 - `agentforce-testing-center`
 - `agentforce-voice-expert`
 - `ai-landing-page`
