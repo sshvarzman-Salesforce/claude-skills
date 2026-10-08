@@ -49,6 +49,38 @@ An ASA action that declares **no** inputs is rejected by the platform — the Re
   - **Adding an input to a Published flex template must be `required=false` on the template parameter side + bump `versionIdentifier`/`activeVersionIdentifier`** — see the `flex-template-input-add-required-false` memory.
 - **Flow actions** use **bare** input names (no `Input:` prefix) matching the flow's `isInput` var names, and output the flow's output var (not `promptResponse`).
 
+## Loading / progress messages on actions (what the caller hears while an action runs)
+
+An action can show a short "please hold…" message while it runs, so the caller isn't left in dead air — essential for **voice** (a flow/prompt-template call can take a few seconds). The OOB knowledge action already does this (`"Getting answers"`); add the same to **every custom action you build**.
+
+**In the `.agent`, two attributes at the ACTION-DEFINITION level** — siblings of `label`/`description`/`target`/`inputs`/`outputs`, placed at the END of the action's definition block (after `outputs:`):
+
+```
+    actions:
+        Get_Program_Account:
+            label: "Get Program Account"
+            description: "…"
+            target: "generatePromptResponse://Synchrony_Get_Program_Account"
+            inputs:
+                "Input:ContactID": string
+                    …
+            outputs:
+                promptResponse: string
+                    …
+                    filter_from_agent: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Please hold while I check on your program account"
+```
+
+- `include_in_progress_indicator: True` turns the indicator on for this action; `progress_indicator_message` is the exact text the agent surfaces while the action runs. Both are **action-level** — do NOT put them inside `inputs:`/`outputs:` or on a subagent.
+- Works for both `flow://` (write/verify) and `generatePromptResponse://` (read) actions. Verified on Synchrony_ASA v4: `Get_Program_Account` → *"Please hold while I check on Program Account"*, `Request_Credit_Limit_Increase` → *"Please hold while I request Credit limit increase"*.
+- Write the message in the agent's **first-person voice** ("Please hold while I …", "One moment while I …") — it is spoken/shown to the customer, not an internal label. Keep it short.
+- The OOB `AnswerQuestionsWithKnowledge` block is the reference shape (it carries `require_user_confirmation: False`, `include_in_progress_indicator: True`, `progress_indicator_message: "Getting answers"`, then `source:`/`target:`).
+
+**Decomposed-bundle equivalent (if you hand-edit the `GenAiPlannerBundle` XML instead of the `.agent`):** the per-topic/per-action `<localActions>` block carries `<isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>` and `<progressIndicatorMessage>…</progressIndicatorMessage>` (that's what the `.agent` attributes compile to).
+
+> **Preserve-on-publish gotcha.** Each `sf agent publish` cuts a NEW numbered planner bundle (`<Agent>_v1`, `_v2`, …); the live content is always the highest-numbered one. If the user added loading messages (or any edit) in the Agent Builder UI, those live ONLY in the org's current bundle — **re-publishing from your older local `.agent` will silently overwrite them.** Before any re-publish, retrieve the live top-numbered `GenAiPlannerBundle:<Agent>_vN`, base64-decode its `agentScript/*.agent`, and reconcile your local source first. (Retrieving the pinned `_v1` name gives you the stale original, not the live version.)
+
 ## Build sequence
 
 **0. Design + Agent Spec (HARD GATE).** Draft the Agent Spec (identity, variables incl. hardcoded `DemoContactId` + linked `VoiceCallId @VoiceCall.Id`, subagent graph, each action's target/inputs/outputs, verification factors, modality/connections). **Save it as a file and STOP for explicit user approval.** No `.agent`/flow code before approval.
