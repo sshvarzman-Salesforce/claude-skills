@@ -1,0 +1,29 @@
+<template>
+    <lightning-card title="Suggested Reply" icon-name="standard:messaging_user">
+        <div class="slds-p-horizontal_small">
+            <template lwc:if={hasError}>
+                <p class="slds-text-color_error">{errorMessage}</p>
+            </template>
+
+            <template lwc:if={hasData}>
+                <p class="reply-text slds-text-body_regular slds-m-bottom_small">{data.{{replyField}}}</p>
+
+                <div>
+                    <!-- STANDARD action: paste into the composer to edit -->
+                    <lightning-button label="Edit" variant="brand" onclick={handleEdit}
+                        disabled={busy} class="slds-m-right_x-small"></lightning-button>
+
+                    <!-- GATED action: only rendered when ENABLE_POST = true -->
+                    <template lwc:if={showPost}>
+                        <lightning-button label="Post" variant="neutral" onclick={handlePost}
+                            disabled={busy}></lightning-button>
+                    </template>
+                </div>
+
+                <p class="slds-text-body_small slds-text-color_weak slds-p-vertical_xx-small">
+                    Edit = load into the composer to review before sending.
+                </p>
+            </template>
+        </div>
+    </lightning-card>
+</template>

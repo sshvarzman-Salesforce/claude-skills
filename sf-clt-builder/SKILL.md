@@ -81,7 +81,7 @@ rationale, privacy warning, and write-back contracts: [guides/surfaces.md](guide
 |---|---|---|---|
 | **SRA sidebar** | `lightningDesktopGenAi` only | `copytochat` / `acc:execute`; Messaging send via `conversationToolkitApi` | `without sharing`; permset on EinsteinServiceAgent **and** the rep |
 | **Employee Agent LEX panel** | same folder | `lightning/accApi` `execute()` (documented). Do **not** assume `copytochat` works | logged-in user; `with sharing` unless proven otherwise |
-| **Enhanced Chat v2** | same folder; **do not add** `enhancedWebChat/` | `this.configuration?.util.sendTextMessage(...)` | portal user vs botUser; **must** also load `agentforce-lightning-types` |
+| **Enhanced Chat v2** | same folder; **do not add** `enhancedWebChat/` | `this.configuration?.util.sendTextMessage(...)` | portal user vs botUser; **must** also load `agentforce-lightning-types`. Go-live gate: grant the **agent user's PROFILE** Apex-class access (admin/permset alone was not enough — field-verified) + host on the Experience Cloud site + **republish the ESD after any agent change**. See [ECv2 go-live gate](#ecv2-go-live-gate-grant-the-agent-users-whole-profile-apex-access-field-verified). |
 | **Agentforce Cowork** | treat as Employee LEX until proven | **none** — display-only or `NavigationMixin`. Label any write-back unverified | logged-in user |
 
 Salesforce's compatibility table lists `enhancedWebChat` as a valid ECv2 channel, and
@@ -511,6 +511,68 @@ There is **no Apex or REST path** for a rep reply in-thread.
 
 ---
 
+## ECv2 go-live gate: grant the AGENT USER's whole profile Apex access (field-verified)
+
+A CLT whose metadata is perfect, whose action smoke-tests clean, and whose agent is
+Active will **still** render a dead/non-submitting card in the live Enhanced Chat v2
+widget if the running user cannot execute the backing Apex class. Two separate things
+have to be true before an ECv2 CLT works end-to-end, and **both are Setup-side — neither
+is provable from the CLI**:
+
+### 1. Apex access must be on the AGENT USER's PROFILE, not just a permission set — and admin ≠ enough
+
+Field-verified fix (Synchrony lead-capture, Oct 2026 — "Kat's fix"): the Einstein Agent
+User could not run the List-Products Apex class even though a sysadmin could and a
+permission set granting the class was assigned. The card rendered but the **product
+selection would not submit**. The fix that actually worked was adding the **entire
+Einstein Agent User profile** under the Apex **class's Security settings**
+(Setup → Apex Classes → the class → **Security** → add the profile).
+
+- **System-administrator access alone is NOT enough.** The *running* user for an ECv2
+  deployment is the agent/bot user (often `*@example.com`, profile **Einstein Agent
+  User**), not you. Your admin rights never apply at runtime.
+- **A permission set CAN carry the grant** (it writes the same `SetupEntityAccess`), and
+  belt-and-suspenders is fine — but the lesson from the field is to put the grant on the
+  **agent user's profile** directly so there is no assignment gap. The two routes are
+  equivalent at the `SetupEntityAccess` level; the profile route is the one that was
+  observed to unblock submission.
+- **Grant the class to the profile for every ECv2 agent user**, and grant **every Apex
+  class the LWC calls client-side** too (not only the invocable action). See the
+  authenticated-context runbook in
+  [references/ecv2-troubleshooting.md](references/ecv2-troubleshooting.md).
+
+**Verify effective access, don't assume it** (this is Rule 0 for perms). Confirm the
+agent user's profile actually carries the grant:
+
+```bash
+# whose profile? (the agent/bot user, NOT you)
+sf data query -o <org> -q "SELECT Id, Name, Profile.Name FROM User WHERE Username='<agentUser>'"
+# every grant of the action class, flagged by profile ownership:
+sf data query -o <org> -q "SELECT Parent.Name, Parent.IsOwnedByProfile, Parent.ProfileId FROM SetupEntityAccess WHERE SetupEntityId='<ApexClassId>' AND SetupEntityType='ApexClass'"
+```
+A row with `IsOwnedByProfile=true` and `ProfileId=<the agent user's ProfileId>` is the
+profile-level grant Kat's fix adds. A permission-set grant shows `IsOwnedByProfile=false`.
+
+### 2. Host on the Experience Cloud site + republish the ESD after ANY agent/subagent change
+
+The chat must be served from the **Experience Cloud (LWR) site**, the **site domain must
+be listed on the Embedded Service Deployment**, and the **ESD must be republished after
+every change to the agent or its subagents/actions**. The ESD caches the agent config —
+republish a new agent version (e.g. re-pointing an action to a new CLT) and the live
+widget keeps serving the OLD action until you republish. (Setup → Embedded Service
+Deployments → the deployment → confirm the site domain → **Publish**.) This is the same
+ESD-republish gate `agentforce-lightning-types` owns; it is repeated here because a CLT
+rebuild that re-points the action is exactly when people forget it.
+
+> A Custom Lightning Type is **not a permissionable entity** — there is nothing to grant
+> a user *on the CLT itself*. What gates CLT rendering for the agent user is (a) the LWC
+> deployed + `isExposed=true`, (b) **profile-level Apex access to the action class** (§1),
+> and (c) the **ESD hosted on the site + republished** (§2). If someone asks you to "give
+> the agent user access to the CLT," do §1 + confirm the LWC/CLT are live — that *is* the
+> access.
+
+---
+
 ## Channel Portability
 
 See [guides/surfaces.md](guides/surfaces.md) for the adapter table. Short version:
@@ -572,6 +634,48 @@ this.dispatchEvent(new CustomEvent('acc:execute', {   // or 'copytochat'
 Use [templates/lwc-interactive/](templates/lwc-interactive/).
 Working example: [examples/interactive-verification-card/](examples/interactive-verification-card/).
 Deep dive: [guides/interactive-writeback.md](guides/interactive-writeback.md).
+
+---
+
+## Messaging-Channel CLTs: Post / Edit into the CUSTOMER conversation (STANDARD)
+
+**For any CLT built on a messaging channel, default to giving the card an "Edit" action that
+pastes its draft into the customer messaging composer.** This replaces the rep's copy-and-paste
+step. It is a DIFFERENT mechanism from `copytochat` / `acc:execute` above — do not confuse them:
+
+| Target conversation | Use | Lands in |
+|---|---|---|
+| **SRA agent chat** (rep ↔ agent) | `copytochat` / `acc:execute` events | agent sidebar chat |
+| **Customer composer** (agent ↔ customer) | `lightning/conversationToolkitApi` | Enhanced Conversation composer / live customer thread |
+
+Two customer-facing actions (GA — `conversationToolkitApi`, API 60.0+):
+
+| Button | Function | Behavior | Default? |
+|--------|----------|----------|----------|
+| **Edit** (paste to composer) | `setAgentInput(recordId, { text }, true)` | Drops text into the composer for the rep to review/edit (`setAtCursor:true` = non-destructive; `false` overwrites) | ✅ **Standard** — keeps rep in the loop |
+| **Post** (send now) | `sendTextMessage(recordId, { text })` | Sends immediately to the customer, no review | ❌ Gate behind explicit config |
+
+**Verified:** calling `conversationToolkitApi` directly from a CLT in the Agentforce output panel
+is undocumented but confirmed working (2026-09-02) — no bridge component needed.
+
+**Resolve the send target CLIENT-SIDE — the #1 correctness rule.** A CLT LWC gets the DTO, not a
+`recordId`. Do NOT serialize a `messagingSessionId` from Apex and send to it — a server-side
+"latest Active session" can name a DIFFERENT customer's chat, and a send has no undo. Resolve the
+target from the focused console tab (`platformWorkspaceApi`, prefix `0Mw`/`500`/`0LQ`) via the
+shared `templates/lwc-reply-routing/` module. Apex session resolution is **reads only**.
+
+**Success = `!== false`, never `=== true`** (`sendTextMessage` resolves `undefined` while
+delivering). Once messaging is in play, **do not fall back to the agent panel** or the customer
+gets the message twice.
+
+**Controller sharing:** the composer write-back runs as the REP, so a reply-drafting controller
+stays `with sharing` — the OPPOSITE of the CLT action-class rule (`without sharing`).
+
+Use the messaging LWC template: [templates/lwc-messaging/](templates/lwc-messaging/) +
+[templates/lwc-reply-routing/](templates/lwc-reply-routing/).
+Full contract & gotchas: [guides/messaging-composer-writeback.md](guides/messaging-composer-writeback.md).
+Other surfaces (Employee LEX, Enhanced Chat v2, Cowork) use different write-back APIs — see
+[guides/surfaces.md](guides/surfaces.md).
 
 ---
 
@@ -682,3 +786,5 @@ Given a card purpose like "Customer Profile" and brand prefix `pet`:
 | 2026-09-05 | **Multi-surface generator.** Trigger now covers SRA, Employee Agent LEX, Enhanced Chat v2, and Agentforce Cowork (unverified write-back). Added Step 0 surface adapter ([guides/surfaces.md](guides/surfaces.md)), dual-naming table, and closed the Path A display-flag rule from all 8 Summit Ridge card actions (`isDisplayable: true` / `isUsedByPlanner: false` on the card; passthroughs inverse). Sharing is surface-specific, not always `without sharing`. New templates: GenAiFunction schemas, write-action class, reply helper with 0Mw/500/0LQ, `sendOnSurface()` stub. LWC apiVersion 67.0. Delegates ECv2 runtime/debug to `agentforce-lightning-types`. Reference is now 8 Lightning Types, 8 reads, 4 writes, shared `summitRidgeReply`. |
 | 2026-09-23 | **Planner-visibility apology fix.** Documented the "every output filtered → planner apologizes even though the card renders" failure, verified on the Questrade Trading SRA. A single-detail action whose only outputs are the card (`isUsedByPlanner: false`) plus `success`/`errorMessage` at `false`/`false` leaves the planner blind; it returns `success:true` with a full card in the raw inspector yet narrates "It seems I couldn't retrieve the details." List actions escape via their count passthrough. Fix: keep ≥1 planner-visible output — flip `success` to `isUsedByPlanner: true` and/or add a positive-confirmation passthrough. Added warning to the Display-flags section and a Common Pitfalls row. |
 | 2026-09-10 | Removed internal Slack citations. Packaged as an unofficial skill pack with installer and architecture docs. |
+| 2026-10-12 | **ECv2 go-live gate section (field-verified).** Added the two Setup-side gates an ECv2 CLT needs beyond perfect metadata: (1) grant the **agent user's PROFILE** access to the backing Apex class via the class's Security settings — a sysadmin running it and a permission set assigning it were BOTH insufficient to let the live card submit (Synchrony lead-capture / "Kat's fix"); plus the `SetupEntityAccess`/`IsOwnedByProfile` query to verify effective access; (2) host on the Experience Cloud site + add the site domain to the ESD + **republish the ESD after any agent/subagent change** (a re-pointed action keeps serving the old version until republish). Clarified that a CLT is not a permissionable entity, so "give the agent user CLT access" = profile-level Apex grant + live LWC/CLT + ESD republish. Added a note to the Enhanced Chat v2 surface-table row and sharpened `references/ecv2-troubleshooting.md`. |
+| 2026-09-25 | **Merged the multi-surface generation with the messaging-composer write-back branch.** Folded the standalone "Messaging-Channel CLTs: Post / Edit into the CUSTOMER conversation" section (`conversationToolkitApi` Edit/Post, client-side target resolution, `!== false` success, `with sharing` reply controller) and its `templates/lwc-messaging/`, `guides/messaging-composer-writeback.md`, `references/ecv2-troubleshooting.md`, `references/patterns.md` into the surface-first SKILL that carries Rule 0 (smoke-test), Step 0 (pick the surface), the Verified Reference Implementation, "A Card Button Has Three Destinations", and Channel Portability. No content dropped from either side. |
