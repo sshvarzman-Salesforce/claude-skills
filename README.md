@@ -1,6 +1,6 @@
 # Claude Code Skills
 
-A collection of **159 Claude Code skills** for Salesforce development — Agentforce, Service Cloud, OmniStudio, Data Cloud, LWC, metadata, B2B Commerce, and more. Each skill is a self-contained folder with a `SKILL.md` (and optional `references/` and `assets/`) that Claude Code loads on demand.
+A collection of **160 Claude Code skills** for Salesforce development — Agentforce, Service Cloud, OmniStudio, Data Cloud, LWC, metadata, B2B Commerce, and more. Each skill is a self-contained folder with a `SKILL.md` (and optional `references/` and `assets/`) that Claude Code loads on demand.
 
 ## What is a skill?
 
@@ -43,9 +43,10 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 
 ## Skills included
 
-159 skills, listed alphabetically:
+160 skills, listed alphabetically:
 
 - `activating-datacloud`
+- `agentforce-observability-data`
 - `agentforce-skills-research`
 - `agentforce-voice-builder`
 - `agentforce-testing-center`
@@ -203,6 +204,10 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `validating-slds`
 
 ### Recently added
+
+**Populating Agentforce Observability dashboards (STDM data)** — how Agentforce Observability (Analytics + Optimization → Insights / Sessions & Intents) gets its data from the Session Tracing Data Model (STDM), and the ways to seed synthetic, industry-specific sessions that render correctly and tell a deliberate quality story. Covers the `SDO_Agentforce_Observability` QBrix architecture (custom objects → SalesforceDotCom data streams → Data Kit DMO mappings) AND the non-SDO path (push synthetic STDM rows straight into the `ssot__AiAgent*__dlm` DMOs via the Data Cloud Ingestion API, for trial/sandbox/demo orgs that can't install the QBrix). Distinct from `observing-agentforce`, which READS/analyzes STDM traces to debug production agents — this one POPULATES them. Ships a Python reference impl (`dc_client.py`, `seed_reference.py`, `stdm_schema.py`) and playbooks for non-SDO ingestion, onboarding, the semantic model, and rebranding the seeder.
+
+- `agentforce-observability-data`
 
 **Person Account custom fields — create on Contact, read the `__pc` mirror** — the reusable mechanics for adding a custom field to a Person Account without the classic split-field mistake. Author the person attribute on **Contact**; Salesforce auto-materializes it on **Account** as a `__pc`-suffixed field (e.g. `Member_Status__c` → `Account.Member_Status__pc`), immediately queryable via SOQL and REST/Bulk API and referenceable in Flow — you never author the Account-side field. Covers why creating it on Account directly is wrong, the one exception (roll-up summaries must live on the master Account), FLS on the Contact source field, placing it on BOTH Contact and Account page layouts, and — from a Person Account's Contact record in a Flow — traversing `Contact.AccountId → Account` (the person self-lookup) to read `__pc`/roll-up/Account-only fields in system mode. Includes the deploy/verify recipe and a worked OMERS-pension example.
 
