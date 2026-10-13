@@ -270,7 +270,34 @@ Restart Claude Code (or start a new session) and the skills appear in the availa
 - `sf-service-voice-runtime`
 - `sf-service-voice-toolkit`
 
+## Agents
+
+In addition to skills, this repo ships **15 general-purpose subagents** under `agents/`. These are Claude Code **subagents** (not skills): each is a single `.md` file with `name` / `description` / `tools` / `model` frontmatter that installs into `~/.claude/agents/` (user scope) or `<project>/.claude/agents/`. They are generic software-engineering personas (not Salesforce-specific) and are vendored from the MIT-licensed [qepting91/claude-agent-suite](https://github.com/qepting91/claude-agent-suite).
+
+Install (user scope):
+```bash
+mkdir -p ~/.claude/agents
+cp /c/tmp/claude-skills/agents/*.md ~/.claude/agents/
+```
+
+- `astro-expert` — AstroJS, Static Site Generation, Islands Architecture.
+- `backend-engineer` — Scalable API design, database optimization, caching, messaging.
+- `frontend-architect` — Semantic HTML5, modern CSS3 (Grid/Flexbox), WCAG accessibility.
+- `go-expert` — High-concurrency Go systems, microservices, CLI tools.
+- `mongo-architect` — MongoDB NoSQL schema design, Aggregation Framework, indexing.
+- `mysql-expert` — MySQL/InnoDB internals, schema optimization, SQL tuning.
+- `node-engineer` — Node.js runtime, event loop, async JavaScript/TypeScript.
+- `postgres-dba` — PostgreSQL administration, EXPLAIN ANALYZE, performance.
+- `powershell-automator` — PowerShell scripting and Windows / PowerShell Core automation.
+- `prompt-engineer` — LLM prompt and system-prompt optimization.
+- `python-architect` — Modern Python (3.10+), asyncio, Pydantic/Mypy, FastAPI/Django.
+- `secure-code-reviewer` — Vulnerability detection and security anti-pattern review.
+- `security-engineer` — Threat modeling, secure architecture, vulnerability assessment.
+- `streamlit-expert` — Streamlit data apps, interactive dashboards.
+- `ux-ui-designer` — User-centered design, accessibility, responsive interfaces.
+
 ## Notes
 
 - Each skill folder is self-contained — you can install any subset.
 - Skills are instructions and reference material, not executable programs; they contain no secrets or credentials.
+- The `agents/` subagents are vendored from the MIT-licensed qepting91/claude-agent-suite; they are generic (non-Salesforce) dev personas and do not count toward the skill total above.
