@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <name>Get_Conversation_Transcript_for_Record_Action_1</name>
+        <label>Get Conversation Transcript for Record Action 1</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>getConvTscpForRecord</actionName>
+        <actionType>getConvTscpForRecord</actionType>
+        <connector>
+            <targetReference>Add_VoiceCall_transcription</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>recordId</name>
+            <value>
+                <elementReference>Get_Case.VoiceCall__r.Id</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>getConvTscpForRecord</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Get_Conversation_Transcript_for_Record_Messaging</name>
+        <label>Get Conversation Transcript for Record Messaging</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>getConvTscpForRecord</actionName>
+        <actionType>getConvTscpForRecord</actionType>
+        <connector>
+            <targetReference>Add_Messaging_transcription</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>recordId</name>
+            <value>
+                <elementReference>Get_Case.Messaging_Session__r.Id</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>getConvTscpForRecord</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <apiVersion>68.0</apiVersion>
+    <assignments>
+        <name>Add_Case_to_Prompt</name>
+        <elementSubtype>AddPromptInstructions</elementSubtype>
+        <label>Add Case to Prompt</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>$Output.Prompt</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <stringValue>Case Number: {!Get_Case.CaseNumber}
+Subject: {!Get_Case.Subject}
+Description:{!Get_Case.Description}
+Type:{!Get_Case.Type}
+SubType:{!Get_Case.SDO_Sub_Type__c}
+_________________________________________________________
+</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Check_if_Case_is_child_of_Messaging_Session_or_VoiceCall</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Add_Messaging_transcription</name>
+        <elementSubtype>AddPromptInstructions</elementSubtype>
+        <label>Add Messaging transcription</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>$Output.Prompt</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <stringValue>Messaging Session transcript for this Case:
+{!Get_Conversation_Transcript_for_Record_Messaging}
+</stringValue>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <assignments>
+        <name>Add_VoiceCall_transcription</name>
+        <elementSubtype>AddPromptInstructions</elementSubtype>
+        <label>Add VoiceCall transcription</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>$Output.Prompt</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <stringValue>Call transcript for this Case:
+{!Get_Conversation_Transcript_for_Record_Action_1.conversationTranscript}
+</stringValue>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <assignments>
+        <name>No_interaction_linked</name>
+        <elementSubtype>AddPromptInstructions</elementSubtype>
+        <label>No interaction linked</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>$Output.Prompt</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <stringValue>No interaction linked to this Case
+</stringValue>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <decisions>
+        <name>Check_if_Case_is_child_of_Messaging_Session_or_VoiceCall</name>
+        <label>Check if Case is child of Messaging Session or VoiceCall</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>No_interaction_linked</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>VoiceCall</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Case.VoiceCall__r.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Conversation_Transcript_for_Record_Action_1</targetReference>
+            </connector>
+            <label>VoiceCall</label>
+        </rules>
+        <rules>
+            <name>Messaging_Session</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Case.Messaging_Session__r.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Conversation_Transcript_for_Record_Messaging</targetReference>
+            </connector>
+            <label>Messaging Session</label>
+        </rules>
+    </decisions>
+    <environments>Default</environments>
+    <interviewLabel>INH Get Case details and parent Conversation {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>INH Get Case details and parent Conversation</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>PromptFlow</processType>
+    <recordLookups>
+        <name>Get_Case</name>
+        <label>Get Case</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Add_Case_to_Prompt</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>CaseNumber</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>CaseNumber</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Case</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Get_Case</targetReference>
+        </connector>
+        <triggerType>Capability</triggerType>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>CaseNumber</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+</Flow>

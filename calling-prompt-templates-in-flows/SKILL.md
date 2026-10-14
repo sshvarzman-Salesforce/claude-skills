@@ -1,10 +1,10 @@
 ---
 name: calling-prompt-templates-in-flows
-description: "Invoke a Salesforce prompt template DIRECTLY as a Flow action (actionType=generatePromptResponse) instead of wrapping the ConnectApi.EinsteinLLM call in an Apex invocable. Covers the exact action XML (actionName = template DeveloperName, inputs prefixed Input:<param>, output auto-stored and read as {!<element>.promptResponse}), plus the companion micro-pattern: a tiny Apex invocable that ONLY converts the template's comma/line-separated text response into a Text collection so the flow can loop on it (Flow cannot split a String into a collection natively). Use whenever you need a flow (RoutingFlow, screen flow, autolaunched, record-triggered) to call a flex/prompt template, get its text back, and act on it — especially to avoid the fragile 'Apex-calls-ConnectApi-and-swallows-exceptions' anti-pattern. Trigger on: \"call a prompt template in a flow\", \"prompt template flow action\", \"use the prompt template action instead of apex\", \"generatePromptResponse\", \"how do I get the prompt response text in flow\", \"turn the prompt response into a list/collection\", \"loop over prompt template output\"."
-compatibility: "Salesforce CLI (sf) v2+; Prompt Builder (GenAiPromptTemplate, flex/einstein_gpt__flex); Flow API v59.0+ (generatePromptResponse action type). Verified on API 64.0."
+description: "Invoke a Salesforce prompt template DIRECTLY as a Flow action (actionType=generatePromptResponse) instead of wrapping the ConnectApi.EinsteinLLM call in an Apex invocable. Covers the exact action XML (actionName = template DeveloperName, inputs prefixed Input:<param>, output auto-stored and read as {!<element>.promptResponse}); the companion micro-pattern (a tiny Apex invocable that converts the template's text response into a Text collection so a flow can loop); AND the full 'AI-draft from a record + its parent conversation transcript' pattern — a Capability PromptFlow data provider that reads a record and calls getConvTscpForRecord on its parent VoiceCall/MessagingSession, a flex template that returns a one-line 'Subject: ...||Description: ...' response, and a screen flow that splits it with two FORMULA fields and creates a record. Use whenever a flow (RoutingFlow, screen flow, autolaunched, record-triggered, or a prompt-template data provider) must call a flex/prompt template, ground it in a record + conversation transcript, get text back, split it, and act on it. Trigger on: \"call a prompt template in a flow\", \"prompt template flow action\", \"generatePromptResponse\", \"get conversation transcript in a flow\", \"getConvTscpForRecord\", \"ground a prompt on a voice call or messaging transcript\", \"AI draft a case subject and description\", \"split the prompt response into subject and description\", \"turn the prompt response into a list\", \"loop over prompt template output\"."
+compatibility: "Salesforce CLI (sf) v2+; Prompt Builder (GenAiPromptTemplate, flex/einstein_gpt__flex); Flow API v59.0+ (generatePromptResponse action type); getConvTscpForRecord (flow-only standard action). Verified on API 64.0 and 68.0."
 metadata:
-  version: "1.0"
-  last_updated: "2026-07-27"
+  version: "1.1"
+  last_updated: "2026-10-14"
 ---
 
 # Calling Prompt Templates Directly in Flows
@@ -22,6 +22,11 @@ Real, deployed-and-Active files this skill was extracted from (copy and adapt th
 - **`assets/example-routingflow-prompt-template-action.flow-meta.xml`** — the complete working RoutingFlow: `Get_VoiceCall` → `generatePromptResponse` (calls `Lead_to_Skill_Matching`) → `apex` transformer → loop → `routeWork`. Every element referenced below is in this file verbatim.
 - **`assets/PromptResponseToSkillIds.cls`** — the text→collection transformer invocable.
 - **`assets/PromptResponseToSkillIdsTest.cls`** — its passing test (3 methods: happy path, stray-text tolerance, blank/null).
+
+Pattern B (record + conversation-transcript grounding — see the Pattern B section below), the three artifacts verbatim from a working Active build:
+- **`assets/inh-promptflow-get-case-and-transcript.flow-meta.xml`** — the Capability PromptFlow data provider: `Get_Case` by number → Decision → `getConvTscpForRecord` on `VoiceCall__r.Id` / `Messaging_Session__r.Id` → `AddPromptInstructions`.
+- **`assets/inh-case-draft-template.genAiPromptTemplate-meta.xml`** — the flex template returning `"Subject: …||Description: …"`, data provider = the PromptFlow.
+- **`assets/inh-screenflow-draft-review-create.flow-meta.xml`** — the screen flow: pick queue → `generatePromptResponse` → two split FORMULAs → review (editable) → queue-by-name → create child case → success.
 
 ### Why prefer the action over an Apex wrapper
 
@@ -196,6 +201,117 @@ Key take-aways this flow proves:
 - The template is called with **no Apex wrapper** — `generatePromptResponse` + `Input:recordId`.
 - The **only** Apex is the String→collection transformer.
 - Pass the record Id the template actually needs via a resource (`{!Get_VoiceCall.RelatedRecordId}`) — never hardcode a test Id into the action input (a hardcoded Id makes the flow "work" for one record and silently ignore the lookup you added).
+
+## Pattern B — AI-draft from a record + its PARENT CONVERSATION TRANSCRIPT (verified, API 68)
+
+This is the high-value pattern: a screen flow where an agent/rep picks an option, an LLM
+**drafts text grounded in a record and the transcript of its parent VoiceCall or
+MessagingSession**, the human reviews/edits it, and the flow creates a record. Three
+artifacts, each with a precise contract. (Ground-truthed from a working Active build;
+assets ship in `assets/inh-*`.)
+
+```
+Screen flow                      Flex template                 Capability PromptFlow (data provider)
+──────────                       ─────────────                 ─────────────────────────────────────
+Get parent record (by Id)                                      input: CaseNumber (the human key, NOT an Id)
+Screen: pick an option   ──┐                                   Get_Case  WHERE CaseNumber = {!CaseNumber}
+generatePromptResponse ────┼─► INH_Case_Draft_New  ──► flow:// INH_Get_Case_details_and_parent_Conversation
+  Input:Case_Number          │   Input:Case_Number  ─────────────► param CaseNumber = {!$Input:Case_Number}
+  Input:Escalation_Queue_Name │   Input:Escalation_Queue_Name     AddPromptInstructions: case fields
+                             │   (queue name used in TEXT only)   Decision on parent:
+2 FORMULA fields split      │   body ends with EXACT format:        VoiceCall__r.Id not null →
+  {!...promptResponse}      │   "Subject: <x>||Description: <y>"       getConvTscpForRecord(VoiceCall__r.Id)
+Review screen (editable)    │   CONTEXT: {!$Flow:...Prompt}           Messaging_Session__r.Id not null →
+Get queue by NAME (Group)   │                                         getConvTscpForRecord(Messaging_Session__r.Id)
+Create record, OwnerId=queue│                                       default → "No interaction linked"
+Success screen w/ number ◄──┘                                     each branch → AddPromptInstructions(.conversationTranscript)
+```
+
+### B1. The data-provider PromptFlow (reads the record + transcript)
+
+- `processType=PromptFlow`, `start.triggerType=Capability`. **ONE input** — the human-facing
+  key (e.g. `CaseNumber`), NOT a record Id. Resolve the record inside the flow. This keeps
+  the whole thing self-contained; never make the caller shuttle resolved Ids in.
+- `Get_Case` → `recordLookup` `WHERE CaseNumber = {!CaseNumber}`, `getFirstRecordOnly=true`,
+  `storeOutputAutomatically=true`. Query the parent lookups so you can dereference them.
+- Append case fields with an `AddPromptInstructions` assignment:
+  `assignToReference = $Output.Prompt`, `operator = Add`, value a `<stringValue>` with
+  `{!Get_Case.CaseNumber}` / `.Subject` / `.Description` / `.Type` etc.
+- **Decision gates the transcript action** so `getConvTscpForRecord` only runs when a parent
+  exists. Two rules + a default:
+  - rule 1: `{!Get_Case.VoiceCall__r.Id}` `IsNull false` → voice transcript branch
+  - rule 2: `{!Get_Case.Messaging_Session__r.Id}` `IsNull false` → messaging transcript branch
+  - default: an `AddPromptInstructions` saying "No interaction linked".
+- The transcript action (one per branch):
+  ```xml
+  <actionCalls>
+      <name>Get_Conversation_Transcript_for_Record_Action_1</name>
+      <actionName>getConvTscpForRecord</actionName>
+      <actionType>getConvTscpForRecord</actionType>
+      <flowTransactionModel>CurrentTransaction</flowTransactionModel>   <!-- REQUIRED -->
+      <inputParameters>
+          <name>recordId</name>
+          <value><elementReference>Get_Case.VoiceCall__r.Id</elementReference></value>  <!-- __r.Id, NOT the __c lookup value -->
+      </inputParameters>
+      <storeOutputAutomatically>true</storeOutputAutomatically>
+  </actionCalls>
+  ```
+  then an `AddPromptInstructions` appends `{!Get_Conversation_Transcript_for_Record_Action_1.conversationTranscript}`.
+- **`getConvTscpForRecord` is flow-only** (Apex cannot call it) and returns the transcript for
+  BOTH VoiceCall and MessagingSession — see the `conversation-transcript-action` memory.
+
+### B2. The flex template (returns a splittable one-liner)
+
+- `type=einstein_gpt__flex`, `status=Published`. For a **FRESH** template, **do NOT hand-manage
+  `versionIdentifier`/`activeVersionIdentifier`** — omit both and let the server assign the
+  version on deploy. (The retrieve→set-hash→redeploy dance is only needed when EDITING an
+  already-published template's content; and you cannot REMOVE inputs from a published template
+  — "No value present" / unsafe-change — create a new template dev name instead.)
+- Two inputs is a common shape: the data key (`Case_Number`, `referenceName=Input:Case_Number`,
+  `required=true`) and a context value (`Escalation_Queue_Name`) used **in the template text
+  only**, not passed to the flow.
+- `templateDataProviders`: `definition=flow://<PromptFlow>`, one `parameters` entry mapping the
+  flow's input to `{!$Input:Case_Number}`. Body references `{!$Flow:<PromptFlow>.Prompt}` for the
+  grounded context.
+- **Pin an exact, parseable output format with a single-line delimiter**:
+  ```
+  Respond EXACTLY in this format, with nothing before or after:
+  "Subject: <one short line>||Description: <3 to 6 sentence briefing>"
+  ```
+  The `||` keeps it one line and makes the split trivial and robust.
+
+### B3. The screen flow (call, split with formulas, create)
+
+- `generatePromptResponse` action → the template; inputs `Input:Case_Number={!Get_Case.CaseNumber}`,
+  `Input:Escalation_Queue_Name={!Option_Queue}`; `storeOutputAutomatically=true`.
+- **Split the one response with two FORMULA resources** (no Apex needed for a fixed 2-part shape):
+  ```
+  Subject:      TRIM(MID(resp, FIND("Subject:", resp) + 8,
+                          FIND("||", resp) - (FIND("Subject:", resp) + 8)))
+  Description:  TRIM(MID(resp, FIND("Description:", resp) + 12, LEN(resp)))
+  ```
+  where `resp` = `{!<action>.promptResponse}`. (`"Subject:"` is 8 chars, `"Description:"` is 12.)
+  Harden with `IF(FIND(...)=0, "<fallback>", <extract>)` if the model may omit a marker.
+- Default the editable review-screen `LargeTextArea` fields to those formulas so the rep can edit.
+- **Resolve a queue by NAME, never a hardcoded Id**: `recordLookup` on
+  `Group WHERE Type='Queue' AND Name={!Option_Queue}` → set the created record's `OwnerId` to
+  `{!Get_Escalation_Queue.Id}`. (A record created by a Flow does not run assignment rules, so a
+  queue OwnerId set this way sticks — no second owner-update step needed.)
+- Create the child record copying context from the parent (Contact, Account, `VoiceCall__c`,
+  `Messaging_Session__c`, Type, etc.), Subject/Description from the edited screen fields.
+- Let Flow render the **default footer** (do NOT set `allowBack`/`allowFinish`/`showFooter`
+  explicitly, and never both `allowBack` and `allowFinish` false — that errors) so Next/Finish
+  appear correctly.
+
+### B4. Lessons (do it right the first time)
+
+- **Make the data provider self-contained on the human key** (case number), not on resolved Ids
+  passed by the caller. Shuttling resolved record Ids between separate agent/flow actions is
+  fragile and fails silently.
+- **Dereference the relationship** (`VoiceCall__r.Id`) for the transcript `recordId`; **gate** the
+  transcript action behind a Decision so it never runs with a null/empty parent.
+- **Queue by name**, server-owned template version, `||` delimiter, formula-split — all cleaner
+  than hardcoded Ids, the version-hash dance, and newline splitting.
 
 ## Verification checklist
 

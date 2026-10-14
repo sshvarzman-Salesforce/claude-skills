@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <developerName>INH_Case_Draft_New</developerName>
+    <masterLabel>INH Case Draft New</masterLabel>
+    <templateVersions>
+        <content>You draft a NEW internal &quot;I Need Help&quot; escalation Case for a human service rep. Read the context below (the originating case and the parent voice/chat transcript) and write a Subject and Description for the target back-office team. Reference the originating case by its number and subject, include the concrete facts (amounts, dates, status, what was already tried), and never invent anything not present in the context.
+
+Respond EXACTLY in this format, with nothing before or after:
+&quot;Subject: &lt;one short line&gt;||Description: &lt;3 to 6 sentence briefing&gt;&quot;
+
+Escalation Queue: {!$Input:Escalation_Queue_Name}
+CONTEXT:
+{!$Flow:INH_Get_Case_details_and_parent_Conversation.Prompt}
+
+
+</content>
+        <inputs>
+            <apiName>Case_Number</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>Case Number</masterLabel>
+            <referenceName>Input:Case_Number</referenceName>
+            <required>true</required>
+        </inputs>
+        <inputs>
+            <apiName>Escalation_Queue_Name</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>Escalation Queue Name</masterLabel>
+            <referenceName>Input:Escalation_Queue_Name</referenceName>
+            <required>true</required>
+        </inputs>
+        <primaryModel>sfdc_ai__DefaultGPT5Mini</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>flow://INH_Get_Case_details_and_parent_Conversation</definition>
+            <label>INH Get Case details and parent Conversation</label>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>CaseNumber</parameterName>
+                <valueExpression>{!$Input:Case_Number}</valueExpression>
+            </parameters>
+            <referenceName>Flow:INH_Get_Case_details_and_parent_Conversation</referenceName>
+        </templateDataProviders>
+    </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
+</GenAiPromptTemplate>
