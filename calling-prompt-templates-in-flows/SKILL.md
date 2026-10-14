@@ -295,10 +295,20 @@ Success screen w/ number ◄──┘                                     each b
 - Default the editable review-screen `LargeTextArea` fields to those formulas so the rep can edit.
 - **Resolve a queue by NAME, never a hardcoded Id**: `recordLookup` on
   `Group WHERE Type='Queue' AND Name={!Option_Queue}` → set the created record's `OwnerId` to
-  `{!Get_Escalation_Queue.Id}`. (A record created by a Flow does not run assignment rules, so a
-  queue OwnerId set this way sticks — no second owner-update step needed.)
+  `{!Get_Escalation_Queue.Id}`.
 - Create the child record copying context from the parent (Contact, Account, `VoiceCall__c`,
   `Messaging_Session__c`, Type, etc.), Subject/Description from the edited screen fields.
+- **OWNER-STICKS GOTCHA — add a post-create Update when an active Case assignment rule exists.**
+  Contrary to a common assumption, a Flow's Create Records on **Case** DOES run the org's active
+  Case **assignment rule** on insert, which overrides the `OwnerId` you set. If no rule entry
+  matches your record, it falls to the org **Default Case Owner** (often a "General" queue), so
+  your INH queue is silently replaced. Fix: add an **Update Records** step immediately after the
+  create — `Case WHERE Id = {!<CreateElement>.Id}`, set `OwnerId = {!Get_Escalation_Queue.Id}`.
+  An update does NOT re-run the assignment rule, so the queue owner sticks. (Verified in a demo
+  org whose SDO `Einstein Case Routing Only` rule was hijacking new cases to General.) Do NOT
+  deactivate or edit a shared demo assignment rule to fix this — the post-create Update is
+  surgical and leaves other demos untouched. Flow's Create Records exposes no "don't run
+  assignment rules" option for Case, so the post-create Update is the standard workaround.
 - Let Flow render the **default footer** (do NOT set `allowBack`/`allowFinish`/`showFooter`
   explicitly, and never both `allowBack` and `allowFinish` false — that errors) so Next/Finish
   appear correctly.
