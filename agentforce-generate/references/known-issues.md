@@ -375,6 +375,63 @@ Unresolved platform bugs, limitations, and edge cases that affect Agent Script d
 
 ---
 
+### Issue 22: `sf agent publish` fails on a template-based Employee Agent — deploy-into-version-slot + activate instead
+- **Status**: WORKAROUND
+- **Date Discovered**: 2026-10-15
+- **Affects**: Re-publishing a change to an existing **template-based**
+  `AgentforceEmployeeAgent` (one whose `.agent` config carries
+  `agent_template: "EmployeeCopilot__AgentforceEmployeeAgent"`) that already has
+  published versions, via `sf agent publish authoring-bundle`.
+- **Symptom**: `sf agent publish authoring-bundle --api-name <Agent>` fails. First
+  with `No components in the package to retrieve` (the post-publish retrieve step)
+  — add `--skip-retrieve` to surface the real error — then with
+  `Metadata API request failed: Error: duplicate value found: UniqueIndexFormula
+  duplicates value on "<Agent Label>"`. The unique-index collision is on the
+  agent **label** at the Bot level: publish tries to stand up a fresh agent/draft
+  rather than versioning the existing one. **Each failed attempt still cuts an
+  empty Inactive `BotVersion`** (so you accumulate orphaned v3, v4, v5… that have
+  no `AiAuthoringBundle` snapshot behind them). The live Active version is never
+  touched — the agent keeps running the old version throughout.
+- **Root Cause**: publish's agent-creation path doesn't reconcile cleanly with the
+  template-provisioned Bot's existing label uniqueness constraint for this agent
+  type. (The ordinary `sf agent publish` flow works for agents authored from
+  scratch; this bites template-based Employee Agents with prior versions.)
+- **Workaround (verified end-to-end)** — deploy the edited bundle into the next
+  **version-named slot**, then activate it; skip `sf agent publish` entirely:
+  1. Reset your editable `.agent` from the live Active version:
+     `sf project retrieve start --metadata "AiAuthoringBundle:<Agent>_<activeN>"`.
+     The retrieved files are **version-named** (`<Agent>_<activeN>/<Agent>_<activeN>.agent`)
+     and the `.bundle-meta.xml` carries `<target><Agent>.v<activeN></target>` which
+     **locks it read-only** — strip the `<target>` line (leave only
+     `<bundleType>AGENT</bundleType>`) to make it an editable draft. Keep the real
+     `developer_name` inside the `.agent` config unchanged.
+  2. Make your edits to the `.agent`. Compile locally (Rule 14) and
+     `sf agent validate authoring-bundle` against the org.
+  3. Put the edited `.agent` into a **next-version-named** bundle folder —
+     `aiAuthoringBundles/<Agent>_<N+1>/<Agent>_<N+1>.agent` + a draft
+     `<Agent>_<N+1>.bundle-meta.xml` (`<bundleType>AGENT</bundleType>`, no
+     `<target>`). The folder/file name is the bundle **version** api name; the
+     agent identity still comes from `developer_name` inside the file.
+  4. `sf project deploy start --source-dir <that folder>` — this creates
+     `BotVersion` v`<N+1>` (Inactive) and compiles its runtime planner
+     `<Agent>_v<N+1>`.
+  5. `sf agent activate --api-name <Agent> --version <N+1>` → the new version goes
+     Active (the previous Active flips Inactive).
+  Verified: added an INH escalation subagent to `Agentforce_Employee_Agent_2_0`,
+  deployed into the `_7` slot, activated v7.
+- **Verification caveat**: you often **cannot** drive the published-version CLI
+  preview for an Employee Agent — `sf agent preview start --api-name <Agent>`
+  returns `Bad Request: Invalid user ID provided on start session`. That's a
+  preview-harness limitation for this agent type, not a publish failure. Prove the
+  content with the **authoring-bundle** preview (`--use-live-actions
+  --authoring-bundle <Agent>`) before deploying, and confirm the activated version
+  in the UI afterward. Roll back instantly with `sf agent activate --version <oldN>`.
+- **Cleanup**: orphaned empty Inactive BotVersions from failed publishes are
+  harmless (not Active, no bundle behind them) but `BotVersion` is not
+  tooling-deletable (DELETE → 404); remove them in the UI if desired.
+
+---
+
 ## Resolved Issues
 
 ### Issue 16: `connections:` (plural) wrapper block not valid — use `connection messaging:` (singular)
@@ -409,4 +466,4 @@ When an issue is resolved:
 
 ---
 
-*Last updated: 2026-08-19*
+*Last updated: 2026-10-15*
