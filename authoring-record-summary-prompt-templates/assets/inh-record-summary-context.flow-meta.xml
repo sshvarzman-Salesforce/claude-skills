@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>62.0</apiVersion>
+    <actionCalls>
+        <name>Get_Voice_Transcript</name>
+        <label>Get Voice Transcript</label>
+        <locationX>88</locationX>
+        <locationY>458</locationY>
+        <actionName>getConvTscpForRecord</actionName>
+        <actionType>getConvTscpForRecord</actionType>
+        <connector><targetReference>Add_Voice_Transcript</targetReference></connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>recordId</name>
+            <value><elementReference>Get_INH_Case.Parent.VoiceCall__c</elementReference></value>
+        </inputParameters>
+        <nameSegment>getConvTscpForRecord</nameSegment>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Get_Messaging_Transcript</name>
+        <label>Get Messaging Transcript</label>
+        <locationX>264</locationX>
+        <locationY>458</locationY>
+        <actionName>getConvTscpForRecord</actionName>
+        <actionType>getConvTscpForRecord</actionType>
+        <connector><targetReference>Add_Messaging_Transcript</targetReference></connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>recordId</name>
+            <value><elementReference>Get_INH_Case.Parent.Messaging_Session__c</elementReference></value>
+        </inputParameters>
+        <nameSegment>getConvTscpForRecord</nameSegment>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <assignments>
+        <name>Add_Full_Context</name>
+        <elementSubtype>AddPromptInstructions</elementSubtype>
+        <label>Add Full Context</label>
+        <locationX>176</locationX>
+        <locationY>242</locationY>
+        <assignmentItems>
+            <assignToReference>$Output.Prompt</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <stringValue>=== INH ESCALATION CASE (the case this summary is for) ===
+Case Number: {!Get_INH_Case.CaseNumber}
+Subject: {!Get_INH_Case.Subject}
+Description: {!Get_INH_Case.Description}
+Status: {!Get_INH_Case.Status}
+Priority: {!Get_INH_Case.Priority}
+Type: {!Get_INH_Case.Type}
+Sub Type: {!Get_INH_Case.SDO_Sub_Type__c}
+
+=== ORIGINATING (PARENT) CASE ===
+Parent Case Number: {!Get_INH_Case.Parent.CaseNumber}
+Parent Subject: {!Get_INH_Case.Parent.Subject}
+Parent Description: {!Get_INH_Case.Parent.Description}
+Parent Status: {!Get_INH_Case.Parent.Status}
+Parent Priority: {!Get_INH_Case.Parent.Priority}
+Parent Origin: {!Get_INH_Case.Parent.Origin}
+Parent Reason: {!Get_INH_Case.Parent.Reason}
+Parent Type: {!Get_INH_Case.Parent.Type}
+Escalated: {!Get_INH_Case.Parent.IsEscalated}
+
+=== CONTACT (the customer) ===
+Name: {!Get_INH_Case.Contact.Name}
+Title: {!Get_INH_Case.Contact.Title}
+Email: {!Get_INH_Case.Contact.Email}
+Phone: {!Get_INH_Case.Contact.Phone}
+Mobile: {!Get_INH_Case.Contact.MobilePhone}
+Preferred Channel: {!Get_INH_Case.Contact.SDO_PA_Preferred_Contact_Channel__c}
+Pronouns: {!Get_INH_Case.Contact.SDO_PA_Inclusive_Pronouns__c}
+Contact Notes: {!Get_INH_Case.Contact.Description}
+
+=== ACCOUNT ===
+Account: {!Get_INH_Case.Account.Name}
+Type: {!Get_INH_Case.Account.Type}
+Industry: {!Get_INH_Case.Account.Industry}
+Rating: {!Get_INH_Case.Account.Rating}
+Account Notes: {!Get_INH_Case.Account.Description}
+</stringValue>
+            </value>
+        </assignmentItems>
+        <connector><targetReference>Which_Channel</targetReference></connector>
+    </assignments>
+    <assignments>
+        <name>Add_Voice_Transcript</name>
+        <elementSubtype>AddPromptInstructions</elementSubtype>
+        <label>Add Voice Transcript</label>
+        <locationX>88</locationX>
+        <locationY>566</locationY>
+        <assignmentItems>
+            <assignToReference>$Output.Prompt</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <stringValue>
+=== PARENT VOICE CALL TRANSCRIPT ===
+{!Get_Voice_Transcript.conversationTranscript}
+</stringValue>
+            </value>
+        </assignmentItems>
+        <connector><targetReference>Add_Instructions</targetReference></connector>
+    </assignments>
+    <assignments>
+        <name>Add_Messaging_Transcript</name>
+        <elementSubtype>AddPromptInstructions</elementSubtype>
+        <label>Add Messaging Transcript</label>
+        <locationX>264</locationX>
+        <locationY>566</locationY>
+        <assignmentItems>
+            <assignToReference>$Output.Prompt</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <stringValue>
+=== PARENT MESSAGING SESSION TRANSCRIPT ===
+{!Get_Messaging_Transcript.conversationTranscript}
+</stringValue>
+            </value>
+        </assignmentItems>
+        <connector><targetReference>Add_Instructions</targetReference></connector>
+    </assignments>
+    <assignments>
+        <name>Add_No_Transcript</name>
+        <elementSubtype>AddPromptInstructions</elementSubtype>
+        <label>Add No Transcript</label>
+        <locationX>440</locationX>
+        <locationY>458</locationY>
+        <assignmentItems>
+            <assignToReference>$Output.Prompt</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <stringValue>
+=== PARENT INTERACTION TRANSCRIPT ===
+No voice call or messaging session is linked to the originating case; base the briefing on the case and customer context above.
+</stringValue>
+            </value>
+        </assignmentItems>
+        <connector><targetReference>Add_Instructions</targetReference></connector>
+    </assignments>
+    <assignments>
+        <name>Add_Instructions</name>
+        <elementSubtype>AddPromptInstructions</elementSubtype>
+        <label>Add Instructions</label>
+        <locationX>176</locationX>
+        <locationY>674</locationY>
+        <assignmentItems>
+            <assignToReference>$Output.Prompt</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <stringValue>
+=== YOUR TASK ===
+You are briefing the back-office (I Need Help) specialist who just received this escalation. Using ONLY the context above, write a concise briefing with these sections:
+1. SITUATION - 2-3 sentences: who the customer is, what the originating case was about, and why it was escalated to this team.
+2. WHAT TO FOCUS ON - a short bullet list of the specific actions/decisions this specialist must make to resolve the escalation.
+3. KEY FACTS FROM THE INTERACTION - the concrete details pulled from the transcript (amounts, dates, account/last-4, status, what was already tried or promised to the customer).
+4. FLAGS / WATCH-OUTS - a short bullet list of anything to be careful about with this customer (e.g. repeated contacts, time sensitivity, dissatisfaction, commitments already made, VIP/rating). If nothing stands out, say "No special flags."
+Do not invent anything not present in the context. Keep it tight and scannable.
+</stringValue>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <decisions>
+        <name>Which_Channel</name>
+        <label>Which Channel</label>
+        <locationX>176</locationX>
+        <locationY>350</locationY>
+        <defaultConnector><targetReference>Add_No_Transcript</targetReference></defaultConnector>
+        <defaultConnectorLabel>No Transcript</defaultConnectorLabel>
+        <rules>
+            <name>Parent_Has_VoiceCall</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_INH_Case.Parent.VoiceCall__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue><booleanValue>false</booleanValue></rightValue>
+            </conditions>
+            <connector><targetReference>Get_Voice_Transcript</targetReference></connector>
+            <label>Parent Has VoiceCall</label>
+        </rules>
+        <rules>
+            <name>Parent_Has_Messaging</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_INH_Case.Parent.Messaging_Session__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue><booleanValue>false</booleanValue></rightValue>
+            </conditions>
+            <connector><targetReference>Get_Messaging_Transcript</targetReference></connector>
+            <label>Parent Has Messaging</label>
+        </rules>
+    </decisions>
+    <description>INH Record Summary context provider: from the INH child Case, reads the case, its parent (originating) Case, the parent's VoiceCall/MessagingSession transcript, the Contact, and the Account, and appends full context + a briefing instruction to the prompt.</description>
+    <environments>Default</environments>
+    <interviewLabel>INH Record Summary Context {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>INH Record Summary Context</label>
+    <processType>PromptFlow</processType>
+    <recordLookups>
+        <name>Get_INH_Case</name>
+        <label>Get INH Case</label>
+        <locationX>176</locationX>
+        <locationY>134</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector><targetReference>Add_Full_Context</targetReference></connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value><elementReference>recordId</elementReference></value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Case</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>CaseNumber</queriedFields>
+        <queriedFields>Subject</queriedFields>
+        <queriedFields>Description</queriedFields>
+        <queriedFields>Status</queriedFields>
+        <queriedFields>Priority</queriedFields>
+        <queriedFields>Type</queriedFields>
+        <queriedFields>SDO_Sub_Type__c</queriedFields>
+        <queriedFields>ParentId</queriedFields>
+        <queriedFields>ContactId</queriedFields>
+        <queriedFields>AccountId</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector><targetReference>Get_INH_Case</targetReference></connector>
+        <triggerType>Capability</triggerType>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>recordId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+</Flow>

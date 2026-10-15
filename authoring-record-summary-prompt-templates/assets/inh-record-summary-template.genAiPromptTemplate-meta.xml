@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionIdentifier>bZ0vgVnDLs6G6ZLTWmRLq15rLoI/dCQZajQLgbi0q9I=_1</activeVersionIdentifier>
+    <developerName>INH_record_Summary_Updated</developerName>
+    <masterLabel>INH record Summary Updated</masterLabel>
+    <overridable>false</overridable>
+    <relatedEntity>Case</relatedEntity>
+    <templateVersions>
+        <content>You brief the back-office &quot;I Need Help&quot; (INH) specialist who just received an escalation case. Read the full context below (the INH case, the originating parent case, the parent voice/chat transcript, the contact, and the account) and write a tight, scannable briefing that tells this specialist what to focus on and flags anything to watch out for with the customer. Use ONLY the facts in the context; never invent anything.
+
+{!$Flow:INH_Record_Summary_Context.Prompt} 
+</content>
+        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
+        <inputs>
+            <apiName>objectToSummarize</apiName>
+            <definition>SOBJECT://Case</definition>
+            <referenceName>Input:Case</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultGPT5Mini</primaryModel>
+        <status>Published</status>
+        <templateDataProviders>
+            <definition>flow://INH_Record_Summary_Context</definition>
+            <description>INH Record Summary context provider: from the INH child Case, reads the case, its parent (originating) Case, the parent&apos;s VoiceCall/MessagingSession transcript, the Contact, and the Account, and appends full context + a briefing instruction to the prompt.</description>
+            <label>INH Record Summary Context</label>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>false</isRequired>
+                <parameterName>recordId</parameterName>
+                <valueExpression>{!$Input:Case.Id}</valueExpression>
+            </parameters>
+            <referenceName>Flow:INH_Record_Summary_Context</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>bZ0vgVnDLs6G6ZLTWmRLq15rLoI/dCQZajQLgbi0q9I=_1</versionIdentifier>
+    </templateVersions>
+    <type>einstein_gpt__recordSummary</type>
+    <visibility>Global</visibility>
+</GenAiPromptTemplate>
