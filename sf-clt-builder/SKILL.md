@@ -347,6 +347,9 @@ Rules:
 - Build payload as `Map<String, Object>`, serialize with `JSON.serialize()`, wrap in DTO constructor
 - Wrap the body in `try / catch (Exception e)` and **never `throw`** — every failure path
   returns a valid DTO carrying `{"error": "..."}`
+- **Grant the new class to the Einstein Agent User profile in the same deploy** (profile
+  `classAccesses`, plus Admin and System Administrator). Chat/ASA and SRA agent users cannot run
+  an ungranted class; see the ECv2 go-live gate and `asa-enhanced-chat-clt`.
 
 ### Step 4: Generate the Lightning Type Bundle
 
@@ -794,6 +797,7 @@ Given a card purpose like "Customer Profile" and brand prefix `pet`:
 | Card button can be clicked twice | The action runs twice (duplicate writes) | One-shot keys in the renderer (`sentKeys`, "Sent ✓") |
 | `deploy --test-level RunSpecifiedTests` "Succeeded" | Failing test methods went live in a production org (Oct 2026) | Run `sf apex run test --class-names <Test>` after every Apex deploy |
 | `List.add(0, x)` on an empty list in Apex | `ListException`, so the card errors | Check `isEmpty()` first (`primaryAction` in the builder) |
+| **No Apex class access for the Einstein Agent User profile** (chat/ASA and SRA agents) | Card renders but buttons never submit, or the action returns nothing ("Access to entity ... denied"), even though admins can run it | In the SAME deploy, add `classAccesses` for every action, helper and LWC-called class to the **Einstein Agent User** profile (and Admin / System Administrator); a permission set alone is not enough. Verify with the SetupEntityAccess query in "ECv2 go-live gate". See `asa-enhanced-chat-clt` |
 | Missing FLS for queried fields | Silent null values (not errors) | Include in permission set checklist |
 | Combined event name `copytochat/acc:execute` | Write-back silently no-ops | Fire ONE event |
 | Testing SRA write-back in the AF/ACC panel | Event never received | Test in the SRA panel with Dynamic Plan mode on |

@@ -28,6 +28,32 @@ Any other folder name (`enhancedChatV2/`, `experience/`) fails with "The artifac
 
 An ASA type that has only `lightningDesktopGenAi/` silently falls back from Enhanced Chat v2 to the desktop config. Do not rely on that for an ASA: configure the Enhanced Chat v2 channel explicitly.
 
+## HARD REQUIREMENT: give the "Einstein Agent User" PROFILE access to every Apex class
+
+Every Apex class the chat agent or its cards touch must be granted to the **Einstein Agent User profile** (the profile of the agent's `default_agent_user`, for example `serviceagentagentforce...@example.com`), not only to admins or a permission set. Without it the card renders but buttons do not submit, actions return nothing, or reads come back empty (the Einstein Agent User license makes Apex hit "Access to entity ... denied" otherwise). Do this every time you add or rename an action class, in the same deploy.
+
+- Which classes: each `apex://` action class, plus any class an LWC calls imperatively, plus the shared helper/builder classes the action calls (`...ReadSupport`, `...CardBuilder`, services). The DTO class is harmless to include.
+- Grant it by metadata (works in the same deploy as the class):
+
+```xml
+<!-- profiles/Einstein Agent User.profile-meta.xml -->
+<Profile xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses><apexClass>CoastlineListMyCardsAction</apexClass><enabled>true</enabled></classAccesses>
+    <!-- one classAccesses per class -->
+</Profile>
+```
+
+  Or in Setup: Apex Classes > the class > Security > add "Einstein Agent User". Also grant the Admin and System Administrator profiles so reps and admins can test.
+- A permission set carrying the same grant is fine as a backup (this org uses `Coastline_SRA_Apex_Access`), but the profile grant is the one verified to unblock card submission in Enhanced Chat v2.
+- Verify, do not assume:
+
+```bash
+sf data query -o <org> -q "SELECT COUNT() FROM SetupEntityAccess WHERE SetupEntityType='ApexClass' AND Parent.Profile.Name='Einstein Agent User'"
+sf data query -o <org> -q "SELECT Username, Profile.Name FROM User WHERE Username='<default_agent_user>'"   # confirm it really is the Einstein Agent User profile
+```
+
+  Check there are several Einstein Agent Users in an org (ASA, SRA, digital agent); they share the one profile, so one profile grant covers all of them.
+
 ## CLT bundle for an ASA type
 
 ```
@@ -121,7 +147,7 @@ Other targets seen in the same agent: `flow://<FlowApiName>` (OTP, lock/unlock, 
 
 1. LT bundle has `enhancedWebChat/renderer.json` (retrieve to confirm it saved). Smoke-test the Apex action itself first (anonymous Apex), then the card in the live chat; first render can need a second try.
 2. The LWC is deployed, `isExposed=true`, target `lightning__AgentforceOutput`.
-3. The agent user's **profile** has Apex class access for the action classes (a permission set alone was not enough in ECv2 field tests); see `sf-clt-builder` "ECv2 go-live gate".
+3. **The Einstein Agent User profile has Apex class access to every action, helper and LWC-called class** (see the HARD REQUIREMENT section above; a permission set alone was not enough in ECv2 field tests). Also in `sf-clt-builder` "ECv2 go-live gate".
 4. The Embedded Service Deployment is hosted on the Experience Cloud site and **republished after any agent or CLT change**.
 5. Customer-safe payload: no rep-only fields on an ASA type.
 
