@@ -15,10 +15,14 @@ Salesforce publishes one compatibility table:
 | `enhancedWebChat` | Yes | **Yes** | Customer-facing Enhanced Chat **v2** only |
 | `experienceBuilder` | Yes | **No** | Experience Builder — editors only |
 
-**Default: generate only `lightningDesktopGenAi/renderer.json`.** Do not add
-`enhancedWebChat/`. The compatibility table lists that folder as valid, and ECv2
-falls back to desktop when it is missing, but adding it has overridden working
-desktop configs in field testing.
+**Rep-facing SRA types: generate only `lightningDesktopGenAi/renderer.json`.
+Customer-facing ASA types (Enhanced Chat v2): generate `enhancedWebChat/renderer.json`.**
+The Enhanced Chat v2 channel (not the messaging channel) is the CLT channel for a customer chat
+agent; in Setup it is Lightning Types > type > UI Configuration > Channel "Enhanced Chat v2".
+Correction 2026-10-25: this guide previously said not to add `enhancedWebChat/`; that was wrong
+for ASA. A dry-run deploy lists the allowed artifacts: `editor.json`, `renderer.json`,
+`lightningDesktopGenAi|lightningMobileGenAi|enhancedWebChat/{editor,renderer}.json`,
+`experienceBuilder/editor.json`. See the `asa-enhanced-chat-clt` skill.
 
 Requires `LightningTypeBundle` on API **64.0+** (this skill's LWC templates use
 **67.0**). The action must return an Apex class — a bare `String` bypasses the LWC.
@@ -31,7 +35,7 @@ Requires `LightningTypeBundle` on API **64.0+** (this skill's LWC templates use
 |---|---|---|---|---|---|
 | **Service Rep Assistant** (LEX panel, actions execute) | `lightningDesktopGenAi` only | `copytochat` / `acc:execute` (undocumented, SRA + Dynamic Plan). Messaging send via `lightning/conversationToolkitApi` | `without sharing` | EinsteinServiceAgent user **and** the rep | — |
 | **Employee Agent LEX panel** | same | `execute(utterance, botId)` from `lightning/accApi` (documented, LEX desktop). Do **not** assume `copytochat` works | `with sharing` unless proven otherwise | logged-in user (Permission Set Group) | `agentforce-lightning-types` for planner/render |
-| **Enhanced Chat v2** (customer widget) | same; **do not add** `enhancedWebChat/` | `this.configuration?.util.sendTextMessage(...)`. Context: `setSessionContext([...])` | portal user (credential verification) or botUser | permset on the user the session actually runs as | **`agentforce-lightning-types`** — ECv2 Connection, ESD WebV2, republish, W-22250928, W-21533738 |
+| **Enhanced Chat v2** (customer widget, ASA) | **`enhancedWebChat/renderer.json`** (explicit; do not rely on the desktop fallback) | `this.configuration?.util.sendTextMessage(...)`. Context: `setSessionContext([...])` | portal user (credential verification) or botUser | permset on the user the session actually runs as | **`agentforce-lightning-types`** — ECv2 Connection, ESD WebV2, republish, W-22250928, W-21533738 |
 | **Agentforce Cowork** | treat as Employee LEX until proven | **None verified.** Buttons are display-only or `NavigationMixin`. Any write-back must be labelled unverified | `with sharing`; logged-in user | same as Employee | builder skill only; do not invent APIs |
 
 Write-back APIs are mutually unavailable. `lightning/accApi` is a module import that
@@ -55,7 +59,8 @@ Before an org that hosts a rep card is used for customer chat:
 - Strip internal notes, margins, churn risk, agent-facing guidance, and RMA
   judgements from the payload — or ship a second, customer-safe Lightning Type.
 - Do not treat "we never added `enhancedWebChat/`" as an opt-out. It is the
-  opposite: missing that folder *enables* the fallback.
+  opposite: missing that folder *enables* the fallback. For a customer ASA, add
+  `enhancedWebChat/renderer.json` on a customer-safe type.
 
 ---
 

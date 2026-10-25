@@ -4,9 +4,12 @@ description: >
   Build Apex-based Custom Lightning Type (CLT) cards for Agentforce surfaces —
   Service Rep Assistant, Employee Agent (LEX), Enhanced Chat v2, and Agentforce Cowork.
   Generates renderer DTOs, Invocable actions, LWC renderers, Lightning Type bundles,
-  GenAiFunction schemas, and surface-specific write-back. TRIGGER when the user asks
+  GenAiFunction schemas, and surface-specific write-back. Includes the field-verified
+  Card Kit: one clean Lightning-style renderer for every card, an Apex card builder, and
+  card buttons that run the next action with a record Id. TRIGGER when the user asks
   to build, add, or generate a custom Lightning Type / CLT / chat card / visual action
-  output for SRA, employee chat, Enhanced Chat, Cowork, or Agentforce. DO NOT TRIGGER
+  output for SRA, employee chat, Enhanced Chat, Cowork, or Agentforce, or to restyle
+  cards or add buttons that drive the next action. DO NOT TRIGGER
   for object-schema CLTs (Experience Builder, Prompt Builder, Mosaic), MIAW v1, Slack /
   Block Kit, or plain record-page LWCs. For a card that will not render, also load
   agentforce-lightning-types (ECv2 preflight, ShowCommand, known platform bugs).
@@ -81,14 +84,17 @@ rationale, privacy warning, and write-back contracts: [guides/surfaces.md](guide
 |---|---|---|---|
 | **SRA sidebar** | `lightningDesktopGenAi` only | `copytochat` / `acc:execute`; Messaging send via `conversationToolkitApi` | `without sharing`; permset on EinsteinServiceAgent **and** the rep |
 | **Employee Agent LEX panel** | same folder | `lightning/accApi` `execute()` (documented). Do **not** assume `copytochat` works | logged-in user; `with sharing` unless proven otherwise |
-| **Enhanced Chat v2** | same folder; **do not add** `enhancedWebChat/` | `this.configuration?.util.sendTextMessage(...)` | portal user vs botUser; **must** also load `agentforce-lightning-types`. Go-live gate: grant the **agent user's PROFILE** Apex-class access (admin/permset alone was not enough — field-verified) + host on the Experience Cloud site + **republish the ESD after any agent change**. See [ECv2 go-live gate](#ecv2-go-live-gate-grant-the-agent-users-whole-profile-apex-access-field-verified). |
+| **Enhanced Chat v2** (customer-facing ASA) | **`enhancedWebChat/renderer.json`**. The CLT channel for a customer chat agent is Enhanced Chat v2, not the messaging channel. See the `asa-enhanced-chat-clt` skill. Rep-facing SRA types stay on `lightningDesktopGenAi` | `this.configuration?.util.sendTextMessage(...)` | portal user vs botUser; **must** also load `agentforce-lightning-types`. Go-live gate: grant the **agent user's PROFILE** Apex-class access (admin/permset alone was not enough — field-verified) + host on the Experience Cloud site + **republish the ESD after any agent change**. See [ECv2 go-live gate](#ecv2-go-live-gate-grant-the-agent-users-whole-profile-apex-access-field-verified). |
 | **Agentforce Cowork** | treat as Employee LEX until proven | **none** — display-only or `NavigationMixin`. Label any write-back unverified | logged-in user |
 
-Salesforce's compatibility table lists `enhancedWebChat` as a valid ECv2 channel, and
-ECv2 **falls back** to `lightningDesktopGenAi` when that folder is missing. Adding
-`enhancedWebChat/renderer.json` has broken working desktop configs in field testing.
-Default is: **one folder, `lightningDesktopGenAi`.** Do not port a rep card to customer
-chat without stripping internal fields — the fallback is silent.
+Salesforce's compatibility table lists `enhancedWebChat` as the Enhanced Chat v2 channel
+(the platform's deploy error lists the allowed artifacts: `lightningDesktopGenAi/`,
+`lightningMobileGenAi/`, `enhancedWebChat/` with editor/renderer, `experienceBuilder/editor.json`,
+root `editor.json`/`renderer.json`). **Correction 2026-10-25:** for a customer-facing ASA the
+CLT channel must be **Enhanced Chat v2 (`enhancedWebChat/`)**, set explicitly; do not rely on
+the fallback to `lightningDesktopGenAi`. Use `lightningDesktopGenAi` only for rep-facing SRA
+types, and keep customer and rep types separate (the fallback is silent and would show rep fields to
+a customer). Full ASA guidance: the `asa-enhanced-chat-clt` skill.
 
 ---
 
@@ -357,7 +363,7 @@ Three files in `force-app/main/default/lightningTypes/<typeName>/`:
    `@apexClassType/c__<DtoClassName>`.
 
 3. `lightningDesktopGenAi/renderer.json` — maps `$` to the LWC, inside a `renderer`
-   wrapper. **Do not add `enhancedWebChat/`.**
+   wrapper. **SRA (rep) types: `lightningDesktopGenAi/` only. Customer-facing ASA types: `enhancedWebChat/renderer.json`** (see `asa-enhanced-chat-clt`).
 
 ```json
 { "renderer": { "componentOverrides": { "$": { "definition": "c/<lwcName>" } } } }
@@ -375,6 +381,7 @@ Three files in `force-app/main/default/lightningTypes/<typeName>/`:
 | Read-only card | [templates/lwc/](templates/lwc/) |
 | SRA interactive (`copytochat` / `acc:execute`) | [templates/lwc-interactive/](templates/lwc-interactive/) |
 | SRA + customer send | also generate [templates/lwc-reply-routing/](templates/lwc-reply-routing/) as `isExposed=false` |
+| **3+ cards on one surface (preferred)** | the **Card Kit**: [templates/lwc-card-kit/](templates/lwc-card-kit/) once, plus [templates/card-kit-builder.cls](templates/card-kit-builder.cls). Every card's `renderer.json` points at it. The template ships apiVersion 65.0 (the verified version); bump it where the org supports 67.0 |
 
 Rules:
 - `js-meta.xml`: apiVersion **67.0**, `masterLabel`, `description`, targets
@@ -511,6 +518,33 @@ There is **no Apex or REST path** for a rep reply in-thread.
 
 ---
 
+## Card Kit: one renderer, a clean Lightning design, next-action buttons (field-verified)
+
+**Verified:** Global Payments Frame 9 SRA (Oct 2026). 13 cards ran on 1 LWC and 1 Apex builder in the SRA panel
+during live voice calls, with list → detail → review → confirm → success chains driven by card buttons. The demo
+owner called it "beautiful, clean". Use it by default when a surface has three or more cards.
+
+| Piece | File | What it gives you |
+|---|---|---|
+| Renderer (once per org) | [templates/lwc-card-kit/](templates/lwc-card-kit/) | White Lightning header with an object icon; verdict banner; 12 block types (stats, fields, list with row buttons, selectable compare tiles, checklist, progress, timeline, AI summary with record link, path, stages, text, details); record layout; recommended step; talk track; one-shot buttons |
+| Apex builder | [templates/card-kit-builder.cls](templates/card-kit-builder.cls) | A fluent `new Card(…).icon(…).verdict(…).block(…)`, item helpers, money/date/duration formatting, `runFor()` button messages, `errorJson()` |
+| Example action | [templates/card-kit-action-class.cls](templates/card-kit-action-class.cls) | A list card with row **Details** buttons, the response contract (`success`, card, passthroughs, `plannerSummary`, `errorMessage`), and a zero-input default record |
+| Design rules | [guides/card-design-system.md](guides/card-design-system.md) | Payload shape, block catalogue, palette, icon check against the org sprite, record layout, time-in-status |
+| Buttons | [guides/next-action-buttons.md](guides/next-action-buttons.md) | The "Run the <label> action for … with record Id …" convention, the BUTTON MESSAGES planner rule, `isUserInput` for button-fed inputs, `{tier}` tiles, review → confirm → success, flow actions that return a sentence |
+| AI summary in a card | [references/patterns.md §9](references/patterns.md) | Apex → flex prompt template → PromptFlow `getConvTscpForRecord`, JSON sections, a link to the session, fallback |
+
+**Rules that matter most:**
+- **Colour carries state, never the header.** Use a white header with an SLDS icon. Gradient or coloured bands
+  were rejected on sight.
+- **Check every icon name against the org's sprite.** A wrong name renders an empty square. `standard:dispute`
+  does not exist.
+- **A button never calls Apex.** It sends one sentence that names the exact action label and record Id. Apex writes
+  that sentence, and every subagent carries the BUTTON MESSAGES rule.
+- **Each card action returns a one-line `plannerSummary` of real numbers** (planner-visible), so the chat reply
+  matches the card.
+
+---
+
 ## ECv2 go-live gate: grant the AGENT USER's whole profile Apex access (field-verified)
 
 A CLT whose metadata is perfect, whose action smoke-tests clean, and whose agent is
@@ -577,7 +611,7 @@ rebuild that re-points the action is exactly when people forget it.
 
 See [guides/surfaces.md](guides/surfaces.md) for the adapter table. Short version:
 
-- Generate **only** `lightningDesktopGenAi/renderer.json`. Do not add `enhancedWebChat/`.
+- Rep-facing SRA types: generate **only** `lightningDesktopGenAi/renderer.json`. Customer-facing ASA types: generate `enhancedWebChat/renderer.json` (Enhanced Chat v2 is the CLT channel; the messaging channel is not a CLT channel).
 - ECv2 falls back to desktop config when `enhancedWebChat` is missing — a rep card
   can therefore reach an external customer without anyone opting in. Strip internal
   fields before that org is used for customer chat.
@@ -744,7 +778,7 @@ Given a card purpose like "Customer Profile" and brand prefix `pet`:
 | Deploying the GenAiPlannerBundle while the agent is active | `Cannot update record as Agent is Active` | Deactivate → deploy → reactivate |
 | JSON inside `.lightningType-meta.xml` | `Required field is missing: masterLabel` | Real XML with `masterLabel`; JSON goes in `schema.json` |
 | `renderer.json` without the `renderer` wrapper | `additionalProperties` deploy error on API 67.0 | Wrap `componentOverrides` in `renderer` |
-| Adding `enhancedWebChat/renderer.json` | Can override a working desktop config | `lightningDesktopGenAi` only |
+| Putting a customer-facing ASA card on `lightningDesktopGenAi` only | Falls back silently from Enhanced Chat v2, and can expose rep fields | `enhancedWebChat/renderer.json` for ASA types; keep SRA types on `lightningDesktopGenAi` (see `asa-enhanced-chat-clt`) |
 | Lightning Type `description` over 255 chars | `Value too long for field: Description` | Trim, keeping the show_command sentence |
 | Hand-building the error JSON string | Quote/newline breaks `JSON.parse` | `JSON.serialize(new Map<String,Object>{'error' => e.getMessage()})` |
 | `throw` inside an action | No output, so the card can't render | Catch and return a DTO carrying `{"error": ...}` |
@@ -752,7 +786,14 @@ Given a card purpose like "Customer Profile" and brand prefix `pet`:
 | Using the Apex session ladder as a **send** target | Wrong customer's live conversation | Client-side `resolveConversationContext()` |
 | Unscoped SOQL in a shared demo org | Unrelated demo records surface | Filter on a demo-owned field |
 | Zip static resource referenced by sub-path | Image 404s, blank tiles | One static resource per image |
-| `isUserInput: true` on action inputs | Agent says "I cannot do this automatically" | Set all to `false` |
+| `isUserInput: true` on the inputs of an action that should fire by itself | Agent says "I cannot do this automatically" | `false` there, and give auto-fired actions no required inputs. **Exception, verified:** the record-Id input a card *button* fills ("…with record Id …") works with `true` ([guides/next-action-buttons.md](guides/next-action-buttons.md) §3c) |
+| Coloured / gradient card headers | Looks like a custom app, rejected as "nasty" in a demo review | White Lightning header + SLDS object icon; colour only on state elements ([guides/card-design-system.md](guides/card-design-system.md)) |
+| A guessed `standard:` icon name | Empty square in the header, no error | Check it against `/_slds/icons/standard-sprite/svg/symbols.svg` in the org |
+| Button message paraphrases the action, or omits the record Id | Wrong subagent, a re-run of the whole plan, or a knowledge answer under the card | `runFor(<exact label>, '… with record Id ' + Id)` + "Show only that card…" + the BUTTON MESSAGES rule in every subagent |
+| Drill-down target action only in its home subagent | The button routes, then there is no action to call ("Sent ✓", nothing happens) | Add it as a `localAction` to every subagent whose cards link to it |
+| Card button can be clicked twice | The action runs twice (duplicate writes) | One-shot keys in the renderer (`sentKeys`, "Sent ✓") |
+| `deploy --test-level RunSpecifiedTests` "Succeeded" | Failing test methods went live in a production org (Oct 2026) | Run `sf apex run test --class-names <Test>` after every Apex deploy |
+| `List.add(0, x)` on an empty list in Apex | `ListException`, so the card errors | Check `isEmpty()` first (`primaryAction` in the builder) |
 | Missing FLS for queried fields | Silent null values (not errors) | Include in permission set checklist |
 | Combined event name `copytochat/acc:execute` | Write-back silently no-ops | Fire ONE event |
 | Testing SRA write-back in the AF/ACC panel | Event never received | Test in the SRA panel with Dynamic Plan mode on |
@@ -773,6 +814,8 @@ Given a card purpose like "Customer Profile" and brand prefix `pet`:
 | Agent Script `.agent` files | `sf-ai-agentscript` |
 | SRA runtime diagnostics (wrong Output Rendering, missing `show_command`) | `sra-agent-debugger` |
 | Full SRA demo scaffolding | `build-agentforce-service-demo` (CLT-GUIDE is a narrative companion, not a second generator) |
+| ServicePlanner subagents, per-topic `localActions`, deactivate → deploy → activate | `authoring-serviceplanner-sra-topics` |
+| PromptFlow + `getConvTscpForRecord` behind an AI summary card | `calling-prompt-templates-in-flows` |
 
 ---
 
@@ -787,4 +830,5 @@ Given a card purpose like "Customer Profile" and brand prefix `pet`:
 | 2026-09-23 | **Planner-visibility apology fix.** Documented the "every output filtered → planner apologizes even though the card renders" failure, verified on the Questrade Trading SRA. A single-detail action whose only outputs are the card (`isUsedByPlanner: false`) plus `success`/`errorMessage` at `false`/`false` leaves the planner blind; it returns `success:true` with a full card in the raw inspector yet narrates "It seems I couldn't retrieve the details." List actions escape via their count passthrough. Fix: keep ≥1 planner-visible output — flip `success` to `isUsedByPlanner: true` and/or add a positive-confirmation passthrough. Added warning to the Display-flags section and a Common Pitfalls row. |
 | 2026-09-10 | Removed internal Slack citations. Packaged as an unofficial skill pack with installer and architecture docs. |
 | 2026-10-12 | **ECv2 go-live gate section (field-verified).** Added the two Setup-side gates an ECv2 CLT needs beyond perfect metadata: (1) grant the **agent user's PROFILE** access to the backing Apex class via the class's Security settings — a sysadmin running it and a permission set assigning it were BOTH insufficient to let the live card submit (Synchrony lead-capture / "Kat's fix"); plus the `SetupEntityAccess`/`IsOwnedByProfile` query to verify effective access; (2) host on the Experience Cloud site + add the site domain to the ESD + **republish the ESD after any agent/subagent change** (a re-pointed action keeps serving the old version until republish). Clarified that a CLT is not a permissionable entity, so "give the agent user CLT access" = profile-level Apex grant + live LWC/CLT + ESD republish. Added a note to the Enhanced Chat v2 surface-table row and sharpened `references/ecv2-troubleshooting.md`. |
+| 2026-10-24 | **Card Kit (field-verified, Global Payments Frame 9 SRA).** One generic renderer (`templates/lwc-card-kit/`) plus an Apex builder (`templates/card-kit-builder.cls`) and an example list → detail action (`templates/card-kit-action-class.cls`), with 13 cards on 1 LWC in live voice calls. New `guides/card-design-system.md` covers the payload shape, block catalogue, clean Lightning look (white icon header, colour only for state, SLDS palette), checking icons against the org sprite, record layout and time in status. New `guides/next-action-buttons.md` covers the "Run the <label> action for … with record Id …" convention, the BUTTON MESSAGES rule, routing and `localActions` for drill-downs, `isUserInput: true` for button-fed Ids, `{tier}` selectable tiles, review → confirm → success without `isConfirmationRequired`, and flow actions that return a sentence. New `references/patterns.md` §9 covers an AI conversation summary in a card (Apex → flex template → PromptFlow, model latency, immutable template versions). The `isUserInput` pitfall row is refined, and 7 pitfall rows are added. |
 | 2026-09-25 | **Merged the multi-surface generation with the messaging-composer write-back branch.** Folded the standalone "Messaging-Channel CLTs: Post / Edit into the CUSTOMER conversation" section (`conversationToolkitApi` Edit/Post, client-side target resolution, `!== false` success, `with sharing` reply controller) and its `templates/lwc-messaging/`, `guides/messaging-composer-writeback.md`, `references/ecv2-troubleshooting.md`, `references/patterns.md` into the surface-first SKILL that carries Rule 0 (smoke-test), Step 0 (pick the surface), the Verified Reference Implementation, "A Card Button Has Three Destinations", and Channel Portability. No content dropped from either side. |

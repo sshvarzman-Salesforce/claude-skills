@@ -358,6 +358,20 @@ A `flow`-type action (`invocationTargetType=flow`) is attached the same way and 
 | Quick action doesn't appear in the plan because it's mentioned mid-sentence | Make it a leading, explicit directive and name the action by its exact console label (bolded) at least twice in the step |
 | `Bot.DeveloperName` in BotVersion SOQL | Use `BotDefinition.DeveloperName`; don't add `--use-tooling-api` (BotVersion is a regular object) |
 
+## Cloning an SRA for another channel (voice -> messaging), field-verified 2026-10-25
+
+Verified on BWAMIDOOctober2026: `Demo_Agentforce_Service_Assistant` (voice) cloned into `Demo_Messaging_Agentforce_Service_Assistant`.
+
+1. **Use `sourceApiVersion` 66.0** for `Bot` + `GenAiPlannerBundle` retrieve/deploy. At 64.0 retrieve fails ("update to package version v65 or higher"); at 68.0 `Bot` is replaced by `AiAgentDefinition` and `GenAiPlannerBundle` is not available.
+2. **Clone, do not hand-build.** Retrieve `Bot:<src>` and `GenAiPlannerBundle:<src>`, rename the bot developer name, the bundle folder/file, and every suffixed topic and action name (inline topic `fullName`/`developerName` and local action names must be unique org-wide). Keep `source`/`localDeveloperName` pointing at the same global `GenAiFunction`s, so the Apex actions are shared. A second SRA can reuse the same `botUser`. Dry-run (`--dry-run`), then deploy; the new agent lands **Inactive v1**.
+3. **Check string replacements on labels.** The voice label was "Voice Demo Agentforce Service Assistant"; a blind replace of "Demo Agentforce Service Assistant" produced "Voice Messaging Demo...". Fix and redeploy.
+4. **Reword channel text** in the topic instructions (voice -> chat: "Reply to the customer in chat", "linked to the MessagingSession", etc.) but keep any card section title the instructions refer to (for example "Why the customer is calling") unchanged.
+5. **Channel-agnostic Apex actions.** Key every lookup on the person Account Id with optional `contactId`, `voiceCallId` and `messagingSessionId` inputs (voice: `RelatedRecordId`, Contact, VoiceCall Id; messaging: `MessagingSession.EndUserAccountId`, `EndUserContactId`, MessagingSession Id). Keep a red guard: no resolved Account returns `success=false` and a message naming the object (VoiceCall or MessagingSession). Smoke-test with anonymous Apex using a messaging session id before activating.
+6. **Input context mappings.** Each custom action carries `attributeMappings` plus a matching `mappingAttributes` declaration (without the declaration the deploy fails "Required fields are missing: [AttributeSource]"). Messaging: `contactId` -> `EndUserContactId`, `relatedRecordId` -> `EndUserAccountId`, `messagingSessionId` -> `RoutableId`; voice: Contact, RelatedRecordId, VoiceCallId.
+7. **Paths and encoding.** Deep `localActions/<Topic>/<Action>/...` folders can exceed Windows MAX_PATH; build and deploy from a short, unique root (for example `C:\Users\<you>\msg56`). Write bundle XML as UTF-8; an ellipsis written through a wrong encoding turns into `â€¦` in the instructions the planner reads. Use ASCII `...`.
+8. **Activation.** Activate with `sf agent activate --api-name <Agent>`. Several SRAs can be Active at once (the CLI status read can be briefly stale right after an activation, so re-query). Any bundle redeploy needs deactivate -> deploy -> re-activate, otherwise the agent is left Inactive.
+9. **Which SRA shows.** With 2 or more active SRAs, add one assignment flow per channel (see below) and attach it in Setup.
+
 ## Related: choosing WHICH SRA is shown (multi-agent assignment)
 
 Authoring a topic/bundle is *what one SRA does*. Deciding *which SRA appears* on a live VoiceCall / MessagingSession / Case (the Setup step **Define Your Multi-Agent Assignment Criteria**, needed only when an org has 2+ SRAs) is a separate autolaunched flow: input `recordId`, one output String whose **value is the SRA's agent API name** (`BotDefinition.DeveloperName`). See the **`assigning-sra-via-flow`** skill for that flow's exact contract, per-channel differences, and how to scale it to a new brand.

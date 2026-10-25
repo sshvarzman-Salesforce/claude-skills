@@ -1,0 +1,299 @@
+<template>
+    <article class={cardClass}>
+
+        <template lwc:if={hasError}>
+            <div class="gp-error">{errorMessage}</div>
+        </template>
+
+        <template lwc:if={hasData}>
+            <template lwc:if={isRecord}>
+                <!-- Salesforce record look: object icon, record name, status pill, highlights. -->
+                <header class="gp-rec">
+                    <div class="gp-rec__top">
+                        <lightning-icon icon-name={record.icon} size="small" alternative-text={record.objectLabel}
+                            title={record.objectLabel} class="gp-rec__icon"></lightning-icon>
+                        <div class="gp-rec__id">
+                            <div class="gp-rec__object">{record.objectLabel}</div>
+                            <template lwc:if={record.name}>
+                                <template lwc:if={record.recordId}>
+                                    <a class="gp-rec__name gp-rec__name_link" href={record.url} onclick={openRecord}>{record.name}</a>
+                                </template>
+                                <template lwc:else>
+                                    <span class="gp-rec__name">{record.name}</span>
+                                </template>
+                            </template>
+                        </div>
+                        <template lwc:if={record.status}>
+                            <span class={statusPillClass}>{record.status}</span>
+                        </template>
+                    </div>
+                    <div class="gp-rec__title">{data.title}</div>
+                    <div class="gp-rec__subtitle">{data.subtitle}</div>
+                    <template lwc:if={hasHighlights}>
+                        <dl class="gp-rec__highlights">
+                            <template for:each={highlights} for:item="h">
+                                <div key={h.key} class="gp-hl">
+                                    <dt class="gp-hl__label">{h.label}</dt>
+                                    <dd class={h.valueClass}>{h.value}</dd>
+                                </div>
+                            </template>
+                        </dl>
+                    </template>
+                </header>
+            </template>
+            <template lwc:else>
+                <!-- Lightning card header: object icon, label, title, subtitle. -->
+                <header class="gp-head">
+                    <lightning-icon icon-name={headerIcon} size="small" alternative-text={data.eyebrow}
+                        title={data.eyebrow} class="gp-head__icon"></lightning-icon>
+                    <div class="gp-head__id">
+                        <div class="gp-head__row">
+                            <span class="gp-eyebrow">{data.eyebrow}</span>
+                            <span class="gp-stamp">{data.stamp}</span>
+                        </div>
+                        <div class="gp-title">{data.title}</div>
+                        <div class="gp-subtitle">{data.subtitle}</div>
+                    </div>
+                </header>
+            </template>
+
+            <div class="gp-body">
+                <template lwc:if={verdict}>
+                    <div class={verdictClass}>
+                        <lightning-icon icon-name={verdictIcon} size="x-small" class="gp-verdict__icon"></lightning-icon>
+                        <span>{verdict.text}</span>
+                    </div>
+                </template>
+
+                <template lwc:if={data.summary}>
+                    <p class="gp-summary">{data.summary}</p>
+                </template>
+
+                <template for:each={blocks} for:item="block">
+                    <section key={block.key} class="gp-block">
+                        <template lwc:if={block.title}>
+                            <div class="gp-block__title">{block.title}</div>
+                        </template>
+
+                        <template lwc:if={block.isStats}>
+                            <div class="gp-stats">
+                                <template for:each={block.items} for:item="it">
+                                    <div key={it.key} class="gp-stat">
+                                        <div class="gp-stat__label">{it.label}</div>
+                                        <div class={it.valueClass}>{it.value}</div>
+                                        <div class="gp-stat__hint">{it.hint}</div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template lwc:if={block.isFields}>
+                            <dl class="gp-fields">
+                                <template for:each={block.items} for:item="it">
+                                    <div key={it.key} class="gp-field">
+                                        <dt class="gp-field__label">{it.label}</dt>
+                                        <dd class={it.valueClass}>{it.value}</dd>
+                                    </div>
+                                </template>
+                            </dl>
+                        </template>
+
+                        <template lwc:if={block.isList}>
+                            <ul class="gp-list">
+                                <template for:each={block.items} for:item="it">
+                                    <li key={it.key} class="gp-row">
+                                        <div class="gp-row__main">
+                                            <div class="gp-row__primary">{it.primary}</div>
+                                            <div class="gp-row__secondary">{it.secondary}</div>
+                                        </div>
+                                        <div class="gp-row__side">
+                                            <span class="gp-row__amount">{it.amount}</span>
+                                            <span class={it.badgeClass}>{it.badge}</span>
+                                            <template lwc:if={it.hasAction}>
+                                                <button type="button" class="gp-row__btn" disabled={it.actionDisabled}
+                                                    data-block={it.blockIndex} data-item={it.itemIndex}
+                                                    onclick={handleRowAction}>{it.actionLabel}</button>
+                                            </template>
+                                        </div>
+                                    </li>
+                                </template>
+                            </ul>
+                        </template>
+
+                        <template lwc:if={block.isCompare}>
+                            <div class="gp-compare">
+                                <template for:each={block.items} for:item="it">
+                                    <div key={it.key} class={it.tierClass} data-value={it.value}
+                                        onclick={handleTierSelect} onkeydown={handleTierKey}
+                                        role="button" tabindex="0" aria-pressed={it.tierPressed}>
+                                        <div class="gp-tier__top">
+                                            <span class="gp-tier__name">{it.name}</span>
+                                            <template lwc:if={it.selectable}>
+                                                <span class={it.radioClass}></span>
+                                            </template>
+                                        </div>
+                                        <div class="gp-tier__price">{it.price}</div>
+                                        <div class="gp-tier__detail">{it.detail}</div>
+                                        <div class="gp-tier__estimate">{it.estimate}</div>
+                                        <div class="gp-tier__note">{it.note}</div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template lwc:if={block.isChecklist}>
+                            <ul class="gp-checks">
+                                <template for:each={block.items} for:item="it">
+                                    <li key={it.key} class="gp-check">
+                                        <lightning-icon icon-name={it.icon} size="xx-small" class={it.valueClass}></lightning-icon>
+                                        <div>
+                                            <div class="gp-check__label">{it.label}</div>
+                                            <div class="gp-check__note">{it.note}</div>
+                                        </div>
+                                    </li>
+                                </template>
+                            </ul>
+                        </template>
+
+                        <template lwc:if={block.isProgress}>
+                            <div class="gp-progress">
+                                <template for:each={block.items} for:item="it">
+                                    <div key={it.key} class="gp-metric">
+                                        <div class="gp-metric__row">
+                                            <span class="gp-metric__label">{it.label}</span>
+                                            <span class={it.valueClass}>{it.value}</span>
+                                        </div>
+                                        <div class="gp-bar"><span class={it.barClass} style={it.barStyle}></span></div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template lwc:if={block.isTimeline}>
+                            <ol class="gp-timeline">
+                                <template for:each={block.items} for:item="it">
+                                    <li key={it.key} class="gp-beat">
+                                        <span class="gp-beat__time">{it.time}</span>
+                                        <span class={it.whoClass}>{it.who}</span>
+                                        <span class="gp-beat__text">{it.text}</span>
+                                    </li>
+                                </template>
+                            </ol>
+                        </template>
+
+                        <template lwc:if={block.isPath}>
+                            <ol class="gp-path" aria-label="Status path">
+                                <template for:each={block.items} for:item="it">
+                                    <li key={it.key} class={it.stepClass} aria-current={it.ariaCurrent} title={it.label}>
+                                        <span class="gp-path__label">{it.label}</span>
+                                    </li>
+                                </template>
+                            </ol>
+                        </template>
+
+                        <template lwc:if={block.isStages}>
+                            <ol class="gp-stages">
+                                <template for:each={block.items} for:item="it">
+                                    <li key={it.key} class={it.stageClass}>
+                                        <div class="gp-stage__main">
+                                            <div class="gp-stage__label">{it.label}</div>
+                                            <div class="gp-stage__range">{it.range}</div>
+                                        </div>
+                                        <span class="gp-stage__duration">{it.duration}</span>
+                                    </li>
+                                </template>
+                            </ol>
+                        </template>
+
+                        <template lwc:if={block.isText}>
+                            <template for:each={block.items} for:item="it">
+                                <div key={it.key} class="gp-text">
+                                    <div class="gp-text__label">{it.label}</div>
+                                    <p class="gp-text__value">{it.value}</p>
+                                </div>
+                            </template>
+                        </template>
+
+                        <template lwc:if={block.isDetails}>
+                            <dl class="gp-details">
+                                <template for:each={block.items} for:item="it">
+                                    <div key={it.key} class="gp-detail">
+                                        <dt class="gp-detail__label">{it.label}</dt>
+                                        <dd class={it.detailClass}>{it.value}</dd>
+                                    </div>
+                                </template>
+                            </dl>
+                        </template>
+
+                        <template lwc:if={block.isSummary}>
+                            <div class="gp-sum">
+                                <template for:each={block.items} for:item="it">
+                                    <div key={it.key} class="gp-sum__part">
+                                        <div class="gp-sum__label">{it.label}</div>
+                                        <template lwc:if={it.value}>
+                                            <p class="gp-sum__text">{it.value}</p>
+                                        </template>
+                                        <template lwc:if={it.hasBullets}>
+                                            <ul class="gp-sum__list">
+                                                <template for:each={it.bulletItems} for:item="bl">
+                                                    <li key={bl.key}>{bl.text}</li>
+                                                </template>
+                                            </ul>
+                                        </template>
+                                        <template lwc:if={it.recordId}>
+                                            <a class="gp-sum__link" href={it.href} data-id={it.recordId}
+                                                data-object={it.objectApiName} onclick={openItemRecord}>
+                                                <lightning-icon icon-name="utility:chat" size="xx-small" class="gp-sum__link-icon"></lightning-icon>
+                                                <span>{it.linkText}</span>
+                                            </a>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template lwc:if={block.note}>
+                            <div class="gp-note">
+                                <lightning-icon icon-name="utility:clock" size="xx-small" class="gp-note__icon"></lightning-icon>
+                                <span>{block.note}</span>
+                            </div>
+                        </template>
+                    </section>
+                </template>
+
+                <template lwc:if={data.reco}>
+                    <div class="gp-reco">
+                        <div class="gp-reco__label">Recommended next step</div>
+                        <p class="gp-reco__text">{data.reco}</p>
+                    </div>
+                </template>
+
+                <template lwc:if={data.talkTrack}>
+                    <div class="gp-talk">
+                        <div class="gp-talk__label">Say to the customer</div>
+                        <p class="gp-talk__text">"{data.talkTrack}"</p>
+                    </div>
+                </template>
+
+                <template for:each={primaryActions} for:item="p">
+                    <button key={p.key} type="button" class="gp-primary" disabled={p.disabled}
+                        data-index={p.index} onclick={handleAction}>
+                        <span class="gp-primary__label">{p.label}</span>
+                        <template lwc:if={p.sublabel}>
+                            <span class="gp-primary__sub">{p.sublabel}</span>
+                        </template>
+                    </button>
+                </template>
+
+                <template lwc:if={hasActions}>
+                    <div class="gp-actions">
+                        <template for:each={actions} for:item="a">
+                            <lightning-button key={a.key} label={a.label} variant={a.variant} disabled={a.disabled}
+                                data-index={a.index} onclick={handleAction}></lightning-button>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </template>
+    </article>
+</template>

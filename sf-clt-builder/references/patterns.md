@@ -12,7 +12,7 @@ Every pattern below sits on top of one binding shape. Use it unless you have a v
 
 - **Renderer DTO** — a tiny `global` class with **one** `@AuraEnabled String <name>JSON` field (`@JsonAccess`, two constructors). One per renderer; never shared.
 - **Service** — `@InvocableMethod` returning `List<Response>`; `Response` carries the DTO under one key (`@InvocableVariable`, typed as the DTO class, displayable and **filtered from the planner**) **plus** a short narrative and/or 2–3 passthrough scalars the planner *can* read. Path A: `copilotAction:isDisplayable: true` / `isUsedByPlanner: false` on the card. Path B: `is_displayable: True` / `filter_from_agent: True` on the card. These two flags are independent — `is_displayable` gates the render tool; filtering hides the JSON so the planner does not narrate it.
-- **LightningType** — `schema.json` → `@apexClassType/c__<DtoClass>`; `lightningDesktopGenAi/renderer.json` → `c/<lwc>` (no `enhancedWebChat/`, no `attributes`).
+- **LightningType** — `schema.json` → `@apexClassType/c__<DtoClass>`; `lightningDesktopGenAi/renderer.json` → `c/<lwc>` (SRA types: no `enhancedWebChat/`; customer ASA types use `enhancedWebChat/renderer.json`, see `asa-enhanced-chat-clt`; no `attributes`).
 - **LWC** — simple `@api value`; `JSON.parse(this.value.<name>JSON)` in `connectedCallback()` with try/catch + `#### ...` breadcrumb + sentinel `{"error":...}` handling; targets `lightning__AgentforceOutput` (+`Input`), no `sourceType`/`targetConfigs`.
 - **Instructions** — explicit ShowCommand language naming the displayable output (see SKILL.md).
 
@@ -189,6 +189,67 @@ The Employee Agent (LEX assist panel) has a constraint: it can't push utterances
 
 ---
 
+## 9. AI Summary of the Live Conversation inside a Card
+
+**Use when** a card should show what the customer already went over with the AI channel (chat or voice) without
+dumping the whole transcript, which is too long for a ~380px panel. The card also shows a link that opens the
+conversation record.
+
+**Verified:** Global Payments Frame 9 SRA (Oct 2026). It ran on the open chargeback card during live calls:
+4–5 s warm, and the card fell back cleanly when the template failed.
+
+**Flow of data**
+```
+card action (Apex) ──ConnectApi──► flex prompt template ──data provider──► PromptFlow (Capability)
+      ▲                                  (JSON output)                       getConvTscpForRecord(recordId)
+      └────────── parse JSON → 'summary' block + recordLink(MessagingSession) ◄─┘
+```
+
+1. **PromptFlow** (`processType` PromptFlow, start `triggerType` Capability) with an input such as
+   `MessagingSessionId`. It calls `getConvTscpForRecord(recordId = MessagingSessionId)` and adds
+   `{!Get_Chat_Transcript.conversationTranscript}` through *Add Prompt Instructions*. `getConvTscpForRecord` is
+   **flow-only**, and `ConversationEntry` SOQL returns 0 rows for enhanced messaging. See
+   `calling-prompt-templates-in-flows` for the flow XML.
+2. **Flex template** with input `MessagingSessionId` and data provider `flow://<PromptFlow>`. Its rules: only
+   facts from the transcript, the first name or "the customer", never he/she, ≤18 words per item, ≤4 items, and
+   **never repeat verification codes, card numbers, emails or phone numbers**. Its output is JSON only:
+   `{"headline": "", "reason": "", "whatHappened": [], "decisions": [], "openItems": []}`.
+3. **Apex**, in the card action:
+   ```apex
+   ConnectApi.WrappedValue sid = new ConnectApi.WrappedValue(); sid.value = String.valueOf(sessionId);
+   ConnectApi.EinsteinPromptTemplateGenerationsInput req = new ConnectApi.EinsteinPromptTemplateGenerationsInput();
+   req.additionalConfig = new ConnectApi.EinsteinLlmAdditionalConfigInput();
+   req.additionalConfig.applicationName = 'PromptBuilderPreview';
+   req.isPreview = false;
+   req.inputParams = new Map<String, ConnectApi.WrappedValue>{ 'Input:MessagingSessionId' => sid };
+   ConnectApi.EinsteinPromptTemplateGenerationsRepresentation res =
+       ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate('<TemplateDevName>', req);
+   String text = res.generations.isEmpty() ? null : res.generations[0].text;
+   ```
+   Parse the text between the first `{` and the last `}` with `JSON.deserializeUntyped`, because models sometimes
+   wrap JSON in ``` fences. If it doesn't parse, use the plain text as the headline. If it's blank, return null.
+   Wrap everything in try/catch and **return null rather than throw**. Under `Test.isRunningTest()`, return null
+   too, because ConnectApi can't run in tests.
+4. **Card:** a `summary` block of `note()` sections (In short · Why they reached out · What happened ·
+   Decisions · Follow up), then `recordLink('Full conversation', 'Open MS-00000351 (Ended)', session.Id,
+   'MessagingSession')`. If the summary is null, show the parsed transcript as a `timeline` block, keep the
+   same link, and title the block "… (transcript; AI summary unavailable)". Add the headline to
+   `plannerSummary`.
+
+**Gotchas**
+- A flex template without `<activeVersionIdentifier>` fails with "No active template version".
+  **Published versions are immutable**: to change one, add a new `<templateVersions>` entry
+  (`…_2`) and point `activeVersionIdentifier` at it.
+- **Model latency:** GPT-5 mini took about 50 s, which is unusable on a live call. GPT-4.1 mini took 4–5 s warm.
+  The first call after a template deploy takes 50–75 s, so run the card once before a demo.
+- **Access:** the agent user (and the reps) need *Prompt Template User*, the PromptFlow in their permission set's
+  `flowAccesses`, and Read + View All Fields on `MessagingSession` / `MessagingEndUser`. View All Records is
+  allowed there even on the Einstein Agent licence.
+- The summary is regenerated on every render. Platform Cache only helps if the org has a default partition with
+  capacity.
+
+---
+
 ## When you can't find a matching pattern
 
-Default to **Pattern 1 (Carousel)** if it's a list of similar things, **Pattern 4 (Form)** if it's collecting structured input, or **Pattern 7 (Formatted URL)** if it's pointing the user somewhere.
+Default to **Pattern 1 (Carousel)** if it's a list of similar things, **Pattern 4 (Form)** if it's collecting structured input, or **Pattern 7 (Formatted URL)** if it's pointing the user somewhere. For three or more cards on one surface, start from the **Card Kit** ([guides/card-design-system.md](../guides/card-design-system.md)).
